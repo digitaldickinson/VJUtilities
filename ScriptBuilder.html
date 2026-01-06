@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MMFJ2:SCRIPTBUILDER - Visually write your script</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body { background-color: #f8fafc; font-family: sans-serif; }
+        .drag-source { cursor: grab; transition: transform 0.2s; }
+        .drag-source:active { cursor: grabbing; transform: scale(0.95); }
+        .drop-zone { transition: all 0.2s; }
+        .drop-zone.drag-over { background-color: #e0e7ff; border-color: #6366f1; transform: scale(1.02); }
+        .hidden { display: none !important; }
+        
+        /* Button States */
+        .btn-paste { transition: all 0.2s; }
+        .btn-paste:disabled { opacity: 0.3; cursor: not-allowed; background-color: #f1f5f9; color: #94a3b8; }
+        .btn-paste:not(:disabled) { background-color: #e0e7ff; color: #4338ca; cursor: pointer; }
+        .btn-paste:not(:disabled):hover { background-color: #c7d2fe; transform: scale(1.05); }
+
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        
+        /* Highlights */
+        .highlight-wide { background-color: #dbeafe; color: #1e40af; border-radius: 2px; padding: 2px 0; } 
+        .highlight-medium { background-color: #dcfce7; color: #166534; border-radius: 2px; padding: 2px 0; } 
+        .highlight-closeup { background-color: #f3e8ff; color: #6b21a8; border-radius: 2px; padding: 2px 0; } 
+        .highlight-unusual { background-color: #ffedd5; color: #9a3412; border-radius: 2px; padding: 2px 0; } 
+        .highlight-library { background-color: #fce7f3; color: #9d174d; border-radius: 2px; padding: 2px 0; } 
+        .highlight-graphic { background-color: #cffafe; color: #155f75; border-radius: 2px; padding: 2px 0; }
+        
+        /* Error Input */
+        .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+
+        /* Sync Sound Specifics */
+        .sync-sound-box { background-color: #f0fdf4; border-color: #86efac; }
+        .sync-sound-box:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); outline: none; }
+
+        /* Modal Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-modal { animation: fadeIn 0.2s ease-out forwards; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>
+                </div>
+                <h1 class="font-bold text-xl tracking-tight text-slate-800">MMFJ2:SCRIPTBUILDER</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="app.showHelp()" class="flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors px-3 py-2 rounded-lg hover:bg-slate-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                    Help
+                </button>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <button onclick="app.reset()" class="text-sm font-bold text-slate-500 hover:text-red-600 transition-colors">Start New Assignment</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+            <h2 class="text-lg font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Details
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Reporter Name</label>
+                    <input type="text" id="studentName" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Enter your name" oninput="app.validate()">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Slug</label>
+                    <input type="text" id="assignmentTitle" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Campus News Package" oninput="app.validate()">
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-4 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-20 z-40">
+            <div class="flex items-center gap-3">
+                <div class="bg-slate-900 p-2 rounded-lg text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Est. Total Duration</h3>
+                    <div class="text-2xl font-bold text-slate-900">~<span id="totalTime">0</span>s</div>
+                </div>
+            </div>
+            
+            <div id="logic-feedback" class="hidden bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 flex items-center gap-2 text-sm text-blue-800"></div>
+
+            <div class="flex gap-4 text-xs md:text-sm text-slate-500 border-l md:border-l-2 pl-4">
+                <div><span class="font-bold text-indigo-600 block"><span id="scriptTime">0</span>s</span> Voiceover</div>
+                <div><span class="font-bold text-emerald-600 block"><span id="intTime">0</span>s</span> Interview</div>
+                <div><span class="font-bold text-amber-600 block">Excl.</span> Cue</div>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 text-white rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-32 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <div class="relative z-10 mb-8">
+                <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>
+                    1. Drag shots from here...
+                </h2>
+                <div id="palette" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 p-4 bg-slate-700/50 rounded-xl border border-slate-600">
+                    </div>
+            </div>
+
+            <div class="relative z-10">
+                <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="19" cy="5" r="1"/><circle cx="5" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="19" cy="19" r="1"/><circle cx="5" cy="19" r="1"/></svg>
+                    2. ...drop them into your sequence (7 Shots)
+                </h2>
+                <div id="board" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3"></div>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-12 gap-6">
+            
+            <div class="lg:col-span-4 bg-white h-fit rounded-2xl shadow-lg border border-slate-100 sticky top-24">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                        Reporter Script
+                    </h3>
+                    <button id="toggleScriptBtn" onclick="app.toggleScriptMode()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors flex items-center gap-1 cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Done
+                    </button>
+                </div>
+                
+                <div class="relative min-h-[600px] bg-white rounded-b-2xl">
+                    <div id="scriptView" class="hidden w-full h-full p-6 text-lg font-serif text-slate-700 leading-relaxed whitespace-pre-wrap overflow-y-auto absolute inset-0 cursor-text" 
+                         onmouseup="app.handleSelection()" 
+                         title="Highlight text here, then click the Quote button on a shot">
+                    </div>
+
+                    <textarea id="scriptEdit" class="w-full h-full p-6 text-lg font-serif text-slate-700 leading-relaxed border-none outline-none resize-none absolute inset-0 bg-white" 
+                              placeholder="Write or paste your script here and then press the Done button..." 
+                              oninput="app.updateScriptData(this.value)"></textarea>
+                </div>
+                <div class="p-2 border-t border-slate-100 text-right text-xs font-bold text-slate-400">
+                    Word Count: <span id="scriptWordCount">0</span>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 bg-indigo-50 p-6 rounded-2xl shadow-inner border border-indigo-100 flex flex-col gap-6">
+                
+                <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 relative">
+                    <div class="absolute top-0 left-0 w-2 h-full bg-amber-400 rounded-l-lg"></div>
+                    <div class="flex justify-between items-center mb-2 pl-3">
+                        <div class="flex items-center gap-2 text-amber-800 font-bold uppercase tracking-wider text-sm">CUE (Studio Intro)</div>
+                        <div class="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded">Time Excluded</div>
+                    </div>
+                    <textarea id="cueText" class="w-full bg-white border border-amber-100 rounded-lg p-3 text-slate-700 outline-none h-24 resize-none pl-3" placeholder="Write the intro..." oninput="app.validate()"></textarea>
+                    <div id="repWarning" class="hidden mt-2 bg-red-50 text-red-600 text-xs font-bold p-2 rounded border border-red-200 flex items-center gap-2">⚠️ Warning: Cue repeats script.</div>
+                </div>
+
+                <div id="shotInputs" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+                <div class="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-6 relative mt-2 transition-all duration-300">
+                    <div class="absolute top-0 left-0 w-2 h-full bg-emerald-400 rounded-l-lg"></div>
+                    
+                    <div class="pl-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-emerald-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                                Interview Sequence
+                            </h3>
+                            <button onclick="app.toggleCutaway()" id="btnCutaway" class="text-[10px] uppercase font-bold px-2 py-1 rounded border border-emerald-300 text-emerald-600 hover:bg-emerald-100 transition-colors">
+                                + Split / Hide Edit
+                            </button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6" id="interviewGrid">
+                            </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center gap-4 pb-12 pt-4">
+            <div id="errorMsg" class="hidden text-center text-red-600 text-sm font-bold bg-red-50 border border-red-200 px-6 py-3 rounded-lg shadow-sm animate-pulse"></div>
+            
+            <div class="flex gap-4">
+                <button id="btnDoc" onclick="app.exportDoc()" class="btn-disabled bg-green-700 hover:bg-green-800 text-white shadow-lg shadow-green-900/20 px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all">
+                    Export Script (.doc)
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="helpModal" class="hidden fixed inset-0 bg-slate-900/50 z-[60] flex items-center justify-center backdrop-blur-sm" onclick="if(event.target === this) app.closeHelp()">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden animate-modal">
+            <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    How to use ScriptBuilder
+                </h3>
+                <button onclick="app.closeHelp()" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-5 text-slate-600 text-sm leading-relaxed overflow-y-auto max-h-[70vh]">
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">1</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">Setup Assignment</strong>
+                        Enter your Name and Slug (Title). This unlocks the export button.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">2</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">Build Your Visuals</strong>
+                        Drag shot cards (Wide, Medium, etc.) from the top palette into the 7 available slots on the board.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">3</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">Write & Time Script</strong>
+                        Write your VO in the "Reporter Script" box on the left. To time specific sections, click <span class="bg-indigo-100 text-indigo-700 px-1 rounded text-xs font-bold">Done</span> to lock the script, highlight a sentence, and click the "Paste" button on a shot card.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">4</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">Interview Sequence</strong>
+                        Fill in the interviewee details. If you need to hide an edit (jump cut), click <span class="text-emerald-600 font-bold text-xs uppercase border border-emerald-200 px-1 rounded">+ Split / Hide Edit</span> to insert a bridging shot.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">5</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">Export</strong>
+                        When finished, use the button at the bottom to download a Word Doc (shooting script).
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+                <button onclick="app.closeHelp()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ICONS = {
+            wide: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+            medium: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+            closeup: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+            unusual: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+            library: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13 5 3-5 3v-6z"/></svg>',
+            graphic: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" ry="2" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>'
+        };
+
+        const SHOT_TYPES = [
+            { id: 'wide', label: 'Wide Shot', desc: 'Setting the scene.', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+            { id: 'medium', label: 'Medium Shot', desc: 'Context & Subject.', color: 'bg-green-100 text-green-700 border-green-200' },
+            { id: 'closeup', label: 'Close-Up', desc: 'Specific details.', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+            { id: 'unusual', label: 'Unusual Angle', desc: 'High, low, birds-eye.', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+            { id: 'library', label: 'Library Footage', desc: 'Archive/Social.', color: 'bg-pink-100 text-pink-700 border-pink-200' },
+            { id: 'graphic', label: 'Graphic', desc: 'Full screen visual.', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' }
+        ];
+
+        const app = {
+            slots: [null, null, null, null, null, null, null],
+            shotData: Array(7).fill().map(() => ({ desc: '', nat: '', script: '' })),
+            hasCutaway: false,
+            cutawaySlot: null,
+            cutawayData: { desc: '', nat: '', script: '' },
+            intText2: "",
+
+            scriptContent: "",
+            isEditMode: true,
+            currentSelection: "",
+
+            init() {
+                this.renderPalette();
+                this.renderBoard();
+                this.renderInputs();
+                this.validate();
+            },
+
+            showHelp() { document.getElementById('helpModal').classList.remove('hidden'); },
+            closeHelp() { document.getElementById('helpModal').classList.add('hidden'); },
+
+            renderPalette() {
+                document.getElementById('palette').innerHTML = SHOT_TYPES.map(type => `
+                    <div class="drag-source flex flex-col items-center justify-center p-3 rounded-xl border-2 shadow-sm ${type.color} h-32 w-full select-none"
+                         draggable="true" ondragstart="app.dragStart(event, '${type.id}')">
+                        <div class="mb-2">${ICONS[type.id]}</div>
+                        <div class="font-bold text-sm text-center">${type.label}</div>
+                        <div class="text-[10px] mt-1 opacity-75 text-center">${type.desc}</div>
+                    </div>
+                `).join('');
+            },
+
+            renderBoard() {
+                document.getElementById('board').innerHTML = this.slots.map((slot, idx) => {
+                    const label = idx === 6 ? "7. Playout" : `#${idx + 1}`;
+                    if (slot) {
+                        return `
+                            <div class="relative flex flex-col items-center justify-center p-3 rounded-xl border-2 shadow-sm ${slot.color} h-32 w-full">
+                                <button onclick="app.removeShot(${idx})" class="absolute -top-2 -right-2 bg-white text-slate-400 hover:text-red-500 rounded-full p-1 border shadow z-10">✕</button>
+                                <div class="absolute top-2 left-2 text-xs font-bold opacity-50">${label}</div>
+                                <div class="mb-1 transform scale-75">${ICONS[slot.id]}</div>
+                                <div class="font-bold text-sm text-center">${slot.label}</div>
+                                <div class="text-[10px] mt-1 opacity-75 text-center">${slot.desc}</div>
+                            </div>
+                        `;
+                    } else {
+                        return `
+                            <div class="drop-zone h-32 w-full rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 text-slate-400 flex flex-col items-center justify-center"
+                                 ondragover="app.allowDrop(event)" ondragleave="app.dragLeave(event)" ondrop="app.drop(event, ${idx})">
+                                <div class="text-xs font-bold mb-1">${label}</div>
+                                <div class="text-xs">Drop Here</div>
+                            </div>
+                        `;
+                    }
+                }).join('');
+                this.renderInputs();
+                this.validate();
+            },
+
+            renderInputs() {
+                const mainGridHtml = this.slots.slice(0, 6).map((slot, idx) => this.getCardHtml(slot, idx)).join('');
+                document.getElementById('shotInputs').innerHTML = mainGridHtml;
+                this.renderInterviewSequence();
+                this.updatePasteButtons();
+            },
+
+            toggleCutaway() {
+                this.hasCutaway = !this.hasCutaway;
+                const btn = document.getElementById('btnCutaway');
+                if(this.hasCutaway) {
+                    btn.innerText = "- Remove Split";
+                    btn.classList.add('bg-emerald-100');
+                    if(!this.cutawaySlot) {
+                        this.cutawaySlot = SHOT_TYPES.find(t => t.id === 'closeup'); 
+                    }
+                } else {
+                    btn.innerText = "+ Split / Hide Edit";
+                    btn.classList.remove('bg-emerald-100');
+                    this.cutawaySlot = null;
+                }
+                this.renderInterviewSequence();
+                this.updateCalculations();
+            },
+
+            setCutawayType(typeId) {
+                const type = SHOT_TYPES.find(t => t.id === typeId);
+                if(type) {
+                    this.cutawaySlot = type;
+                    this.renderInterviewSequence();
+                }
+            },
+
+            renderInterviewSequence() {
+                const container = document.getElementById('interviewGrid');
+                let html = '';
+
+                // 1. MAIN INTERVIEW ROW
+                const intDur1 = Math.ceil(this.countWords(document.getElementById('intText')?.value || "") / 3);
+                const intNameVal = document.getElementById('intName')?.value || '';
+                const intTitleVal = document.getElementById('intTitle')?.value || '';
+
+                html += `
+                    <div class="md:col-span-4 flex flex-col gap-2">
+                        <div class="bg-white border border-emerald-200 rounded-lg p-3 text-emerald-600 flex flex-col items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <span class="text-[10px] font-bold uppercase mt-1">Medium Close Up (MCU)</span>
+                        </div>
+                        <input type="text" id="intName" class="w-full text-xs p-2 border border-emerald-200 rounded text-center focus:border-emerald-500 outline-none" placeholder="Interviewee Name" oninput="app.validate()" value="${intNameVal}">
+                        <input type="text" id="intTitle" class="w-full text-xs p-2 border border-emerald-200 rounded text-center focus:border-emerald-500 outline-none" placeholder="Job Title" oninput="app.validate()" value="${intTitleVal}">
+                    </div>
+                    
+                    <div class="md:col-span-8 flex flex-col">
+                        <div class="flex justify-between items-center mb-1">
+                            <div class="text-emerald-800 font-bold uppercase text-xs">Soundbite ${this.hasCutaway ? '(Part 1)' : ''}</div>
+                            <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded">Est: <span id="intDurationDisplay">${intDur1}</span>s</div>
+                        </div>
+                        <textarea id="intText" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none focus:border-emerald-400" placeholder="Transcription of interview." oninput="app.updateCalculations()">${document.getElementById('intText')?.value || ''}</textarea>
+                    </div>
+                `;
+
+                // 2. OPTIONAL SPLIT/BRIDGE
+                if (this.hasCutaway) {
+                    const cSlot = this.cutawaySlot;
+                    const cDur = Math.ceil(this.countWords(this.cutawayData.script) / 3);
+                    const options = SHOT_TYPES.map(t => `<option value="${t.id}" ${cSlot && cSlot.id === t.id ? 'selected' : ''}>${t.label}</option>`).join('');
+                    const colorClass = cSlot ? cSlot.color.split(' ')[1] : 'text-slate-500'; 
+                    const bgClass = cSlot ? cSlot.color.replace('text-', 'bg-').split(' ')[0] : 'bg-white';
+                    const icon = cSlot ? ICONS[cSlot.id].replace('width="32"', 'width="24"').replace('height="32"', 'height="24"') : '';
+
+                    const leftContent = `
+                        <div class="bg-white rounded-lg border border-emerald-200 p-3 h-full relative shadow-sm">
+                             <div class="mb-2">
+                                <select onchange="app.setCutawayType(this.value)" class="w-full text-[10px] p-1 border border-slate-200 rounded bg-slate-50 outline-none focus:border-emerald-400 font-bold text-slate-600">
+                                    ${options}
+                                </select>
+                             </div>
+                             <div class="flex items-center gap-2 mb-2 p-2 rounded ${bgClass} bg-opacity-30">
+                                <div class="${colorClass}">${icon}</div>
+                                <div class="text-[10px] font-bold uppercase ${colorClass}">Hide Edit / Cutaway</div>
+                             </div>
+                             <textarea oninput="app.updateCutawayData('desc', this.value)" class="w-full text-xs p-2 border border-slate-100 rounded bg-slate-50 focus:bg-white outline-none resize-none h-14 placeholder:text-slate-400 mb-2" placeholder="Visual description...">${this.cutawayData.desc}</textarea>
+                             <div class="flex gap-2 items-center">
+                                <span class="text-[10px] font-bold text-slate-400">NAT</span>
+                                <input type="text" oninput="app.updateCutawayData('nat', this.value)" class="w-full text-xs p-1.5 border border-slate-100 rounded outline-none placeholder:text-slate-300" placeholder="Nat Sound..." value="${this.cutawayData.nat}">
+                            </div>
+                        </div>
+                    `;
+
+                    html += `
+                        <div class="md:col-span-4 pl-8 relative">
+                             <div class="absolute left-0 top-0 bottom-0 w-px bg-emerald-300 opacity-30"></div>
+                             <div class="absolute left-[-4px] top-1/2 w-2 h-2 rounded-full bg-emerald-400"></div>
+                             ${leftContent}
+                        </div>
+                        <div class="md:col-span-8 flex flex-col">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="text-emerald-800 font-bold uppercase text-xs">Sync Sound (Bridge)</div>
+                                <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded">Est: ${cDur}s</div>
+                            </div>
+                            <textarea oninput="app.updateCutawayData('script', this.value)" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none sync-sound-box" placeholder="&quot;Subject continues speaking over cutaway...&quot;">${this.cutawayData.script}</textarea>
+                        </div>
+                        
+                        <!-- REFINED SECOND MCU BLOCK - Aligned & Simplified -->
+                        <div class="md:col-span-4 flex flex-col gap-2">
+                            <div class="bg-white border border-emerald-200 rounded-lg p-3 text-emerald-600 flex flex-col items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                <span class="text-[10px] font-bold uppercase mt-1">Medium Close Up (MCU)</span>
+                                <span class="text-[8px] italic font-bold opacity-70">(Cut back to subject)</span>
+                            </div>
+                        </div>
+                        <div class="md:col-span-8 flex flex-col">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="text-emerald-800 font-bold uppercase text-xs">Soundbite (Part 2)</div>
+                                <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded">Est: <span id="intDurationDisplay2">${Math.ceil(this.countWords(this.intText2)/3)}</span>s</div>
+                            </div>
+                            <textarea id="intText2" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none focus:border-emerald-400" placeholder="Final part of transcription..." oninput="app.updateIntText2(this.value)">${this.intText2}</textarea>
+                        </div>
+                    `;
+                }
+
+                // 3. PLAYOUT ROW
+                const pSlot = this.slots[6];
+                const pIdx = 6;
+                let playoutLeft = '';
+                let playoutRight = '';
+                const pDur = Math.ceil(this.countWords(this.shotData[6].script) / 3);
+
+                if (!pSlot) {
+                    playoutLeft = `
+                        <div class="h-32 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50/50 flex flex-col items-center justify-center text-emerald-400/50"
+                             ondragover="app.allowDrop(event)" ondragleave="app.dragLeave(event)" ondrop="app.drop(event, ${pIdx})">
+                            <span class="text-xs font-bold uppercase">Playout Shot</span>
+                            <span class="text-[10px]">Drop Shot Here</span>
+                        </div>`;
+                    playoutRight = `
+                         <div class="flex justify-between items-center mb-1 opacity-50">
+                            <div class="text-emerald-800 font-bold uppercase text-xs">Handover / Conclusion</div>
+                        </div>
+                        <textarea disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg p-3 text-slate-400 outline-none h-32 resize-none italic" placeholder="Add a playout shot to finish the package..."></textarea>`;
+                } else {
+                    const label = `<span class="${pSlot.color.split(' ')[1]}">Cut-Away: ${pSlot.label}</span>`;
+                    playoutLeft = `
+                        <div class="bg-white rounded-lg border border-emerald-200 p-3 h-full relative group">
+                             <button onclick="app.removeShot(${pIdx})" class="absolute top-1 right-1 text-slate-300 hover:text-red-500 p-1">✕</button>
+                             <div class="text-xs font-bold uppercase mb-2 ${pSlot.color.split(' ')[1]}">${label}</div>
+                             <textarea oninput="app.updateData(${pIdx}, 'desc', this.value)" class="w-full text-xs p-2 border border-slate-100 rounded bg-slate-50 focus:bg-white outline-none resize-none h-16 placeholder:text-slate-400 mb-2" placeholder="Visual description...">${this.shotData[pIdx].desc}</textarea>
+                             <div class="flex gap-2 items-center">
+                                <span class="text-[10px] font-bold text-slate-400">NAT</span>
+                                <input type="text" id="nat-${pIdx}" oninput="app.updateData(${pIdx}, 'nat', this.value)" class="w-full text-xs p-1.5 border border-slate-100 rounded outline-none placeholder:text-slate-300" placeholder="Nat Sound..." value="${this.shotData[pIdx].nat}">
+                            </div>
+                        </div>`;
+                    playoutRight = `
+                        <div class="flex justify-between items-center mb-1">
+                            <div class="text-emerald-800 font-bold uppercase text-xs">Handover / Conclusion</div>
+                            <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded">Est: ${pDur}s</div>
+                        </div>
+                        <textarea oninput="app.updateData(${pIdx}, 'script', this.value)" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none sync-sound-box" placeholder="Final conclusion or handover details...">${this.shotData[pIdx].script}</textarea>`;
+                }
+
+                html += `<div class="md:col-span-4">${playoutLeft}</div><div class="md:col-span-8 flex flex-col">${playoutRight}</div>`;
+                container.innerHTML = html;
+            },
+
+            updateIntText2(val) { this.intText2 = val; this.updateCalculations(); },
+            updateCutawayData(field, value) { this.cutawayData[field] = value; if(field === 'script') this.updateCalculations(); },
+
+            getCardHtml(slot, idx) {
+                if (!slot) return `<div class="bg-slate-50 border border-slate-200 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-slate-400 h-64"><div class="font-bold text-sm uppercase">Shot #${idx + 1} Empty</div><div class="text-xs">Drag a shot above to edit</div></div>`;
+                const dur = Math.ceil(this.countWords(this.shotData[idx].script) / 3);
+                const btnDisabled = this.isEditMode || !this.currentSelection;
+                const label = `Shot ${idx+1}: <span class="${slot.color.split(' ')[1]}">${slot.label}</span>`;
+                return `
+                    <div class="bg-white rounded-xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col h-64 transition-all hover:shadow-md">
+                        <div class="px-4 py-2 border-b flex justify-between items-center bg-opacity-30 ${slot.color.replace('text-', 'bg-').split(' ')[0]}">
+                            <div class="font-bold text-xs uppercase text-slate-600">${label}</div>
+                        </div>
+                        <div class="flex-grow p-3 space-y-2 overflow-y-auto">
+                            <textarea id="desc-${idx}" oninput="app.updateData(${idx}, 'desc', this.value)" class="w-full text-sm p-2 border border-slate-100 rounded bg-slate-50 focus:bg-white outline-none resize-none h-14 placeholder:text-slate-400" placeholder="Describe shot...">${this.shotData[idx].desc}</textarea>
+                            <div class="flex gap-2 items-center">
+                                <span class="text-[10px] font-bold text-slate-400">NAT</span>
+                                <input type="text" id="nat-${idx}" oninput="app.updateData(${idx}, 'nat', this.value)" class="w-full text-xs p-1.5 border border-slate-100 rounded outline-none placeholder:text-slate-300" placeholder="Describe Nat Sound..." value="${this.shotData[idx].nat}">
+                            </div>
+                            <div class="flex gap-2 items-start pt-2 border-t border-slate-50">
+                                <div class="w-full relative flex gap-1 h-16">
+                                    <button onclick="app.pasteSelection(${idx})" class="btn-paste p-2 rounded w-8 flex-shrink-0 flex items-center justify-center h-full" ${btnDisabled ? 'disabled' : ''}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    </button>
+                                    <textarea oninput="app.updateData(${idx}, 'script', this.value)" id="script-${idx}" class="w-full text-xs p-2 border border-slate-100 rounded outline-none resize-none h-full bg-indigo-50/20 text-indigo-900 font-serif italic" placeholder="Paste script here...">${this.shotData[idx].script}</textarea>
+                                    <div class="absolute bottom-1 right-2 text-[10px] text-indigo-400 font-bold bg-white/80 px-1 rounded">${dur}s</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            toggleScriptMode() {
+                this.isEditMode = !this.isEditMode;
+                const btn = document.getElementById('toggleScriptBtn');
+                const view = document.getElementById('scriptView');
+                const edit = document.getElementById('scriptEdit');
+                if (this.isEditMode) {
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Done';
+                    btn.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors cursor-pointer flex items-center gap-1";
+                    view.classList.add('hidden');
+                    edit.classList.remove('hidden');
+                    edit.value = this.scriptContent;
+                } else {
+                    btn.innerHTML = '✏️ Edit Script';
+                    btn.className = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors cursor-pointer flex items-center gap-1";
+                    edit.classList.add('hidden');
+                    view.classList.remove('hidden');
+                    this.renderScriptView();
+                }
+                this.currentSelection = "";
+                this.updatePasteButtons();
+            },
+
+            updateScriptData(val) { this.scriptContent = val; this.updateCalculations(); },
+
+            renderScriptView() {
+                let html = this.escapeHtml(this.scriptContent);
+                if(!html) { document.getElementById('scriptView').innerHTML = '<span class="text-slate-400 italic">Click "Edit Script" to start writing...</span>'; return; }
+                this.slots.slice(0,6).forEach((slot, i) => {
+                    if (slot && this.shotData[i].script.trim()) {
+                        const txt = this.escapeHtml(this.shotData[i].script.trim());
+                        if(html.includes(txt)) {
+                            html = html.replace(txt, `<span class="highlight-${slot.id} border-b-2 border-${slot.color.split('-')[1]}-500">${txt}</span>`);
+                        }
+                    }
+                });
+                document.getElementById('scriptView').innerHTML = html;
+            },
+
+            handleSelection() {
+                if(this.isEditMode) return;
+                const selection = window.getSelection();
+                const text = selection.toString().trim();
+                if(text.length > 0) { this.currentSelection = text; this.updatePasteButtons(); }
+            },
+
+            updatePasteButtons() {
+                const btns = document.querySelectorAll('.btn-paste');
+                btns.forEach(btn => { btn.disabled = this.isEditMode || !this.currentSelection; });
+            },
+
+            pasteSelection(idx) {
+                if(!this.currentSelection) return;
+                this.shotData[idx].script = this.currentSelection;
+                const textArea = document.getElementById(`script-${idx}`);
+                if(textArea) textArea.value = this.currentSelection;
+                this.currentSelection = "";
+                window.getSelection().removeAllRanges();
+                this.updateCalculations();
+                this.renderScriptView(); 
+                this.updatePasteButtons();
+            },
+
+            escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); },
+
+            dragStart(ev, id) { ev.dataTransfer.setData("shotId", id); },
+            allowDrop(ev) { ev.preventDefault(); ev.currentTarget.classList.add('drag-over'); },
+            dragLeave(ev) { ev.currentTarget.classList.remove('drag-over'); },
+            drop(ev, idx) {
+                ev.preventDefault();
+                ev.currentTarget.classList.remove('drag-over');
+                const id = ev.dataTransfer.getData("shotId");
+                const type = SHOT_TYPES.find(t => t.id === id);
+                if (type) { this.slots[idx] = type; this.renderBoard(); }
+            },
+            removeShot(idx) { this.slots[idx] = null; this.renderBoard(); },
+
+            updateData(idx, field, value) {
+                this.shotData[idx][field] = value;
+                if(field === 'script') {
+                    this.updateCalculations();
+                    if(!this.isEditMode && idx < 6) this.renderScriptView(); 
+                }
+                this.validate();
+            },
+
+            countWords(str) { return str ? str.trim().split(/\s+/).filter(w => w.length > 0).length : 0; },
+
+            updateCalculations() {
+                const sWords = this.countWords(this.scriptContent);
+                const sTime = Math.ceil(sWords / 3);
+                const intWords1 = this.countWords(document.getElementById('intText')?.value || "");
+                const playoutSyncWords = this.countWords(this.shotData[6].script);
+                let cutawayBridgeWords = 0;
+                let intWords2 = 0;
+                if(this.hasCutaway) {
+                    cutawayBridgeWords = this.countWords(this.cutawayData.script);
+                    intWords2 = this.countWords(this.intText2);
+                    if(document.getElementById('intDurationDisplay2')) {
+                        document.getElementById('intDurationDisplay2').innerText = Math.ceil(intWords2 / 3);
+                    }
+                }
+                const totalIntWords = intWords1 + cutawayBridgeWords + intWords2 + playoutSyncWords;
+                const iTime = Math.ceil(totalIntWords / 3);
+                document.getElementById('scriptWordCount').innerText = sWords;
+                document.getElementById('scriptTime').innerText = sTime;
+                if(document.getElementById('intDurationDisplay')) {
+                   document.getElementById('intDurationDisplay').innerText = Math.ceil(intWords1 / 3);
+                }
+                document.getElementById('intTime').innerText = iTime; 
+                document.getElementById('totalTime').innerText = sTime + iTime;
+                this.validate();
+            },
+
+            validate() {
+                const fields = [
+                    { id: 'studentName', name: 'Student Name' },
+                    { id: 'assignmentTitle', name: 'Assignment Title' },
+                    { id: 'cueText', name: 'Cue' },
+                    { id: 'intName', name: 'Interviewee Name' },
+                    { id: 'intTitle', name: 'Interviewee Job Title' },
+                    { id: 'intText', name: 'Interview Soundbite' }
+                ];
+                let missing = [];
+                fields.forEach(f => {
+                    const el = document.getElementById(f.id);
+                    if(el) {
+                        if(!el.value.trim()) { missing.push(f.name); el.classList.add('input-error'); }
+                        else { el.classList.remove('input-error'); }
+                    }
+                });
+                if (this.hasCutaway && !this.intText2.trim()) missing.push("Interview Part 2");
+                if (!this.scriptContent.trim()) missing.push("Main Script");
+                this.slots.forEach((s, i) => {
+                    if (i < 6) {
+                        const label = `Shot ${i+1}`;
+                        if(!s) missing.push(`${label} Card`);
+                        else if(!this.shotData[i].desc.trim()) missing.push(`${label} Description`);
+                    }
+                });
+                const msg = document.getElementById('errorMsg');
+                const btnDoc = document.getElementById('btnDoc');
+                if (missing.length > 0) {
+                    msg.innerText = "Missing: " + missing.join(', ');
+                    msg.classList.remove('hidden');
+                    btnDoc.classList.add('btn-disabled');
+                } else {
+                    msg.classList.add('hidden');
+                    btnDoc.classList.remove('btn-disabled');
+                }
+            },
+
+            reset() {
+                if(confirm("Clear all work?")) {
+                    this.slots = [null,null,null,null,null,null,null];
+                    this.shotData = Array(7).fill().map(() => ({ desc:'', nat:'', script:'' }));
+                    this.hasCutaway = false;
+                    this.cutawaySlot = null;
+                    this.cutawayData = { desc:'', nat:'', script:'' };
+                    this.intText2 = "";
+                    this.scriptContent = "";
+                    document.querySelectorAll('input, textarea').forEach(el => { el.value = ''; el.classList.remove('input-error'); });
+                    this.isEditMode = true;
+                    this.renderBoard();
+                    this.updateCalculations();
+                }
+            },
+
+            exportDoc() {
+                const cue = document.getElementById('cueText').value;
+                const intName = document.getElementById('intName').value;
+                const intTitle = document.getElementById('intTitle').value;
+                const intText = document.getElementById('intText').value;
+                const total = document.getElementById('totalTime').innerText;
+
+                let rows = `
+                    <tr><td colspan="3" style="border:1px solid #000; padding:10px; font-weight:bold; background:#eee;">Cue</td></tr>
+                    <tr><td colspan="3" style="border:1px solid #000; padding:10px;">${cue}</td></tr>
+                    <tr style="background:#eee; font-weight:bold;">
+                        <td style="border:1px solid #000; padding:10px; width:30%">Shots</td>
+                        <td style="border:1px solid #000; padding:10px; width:50%">Script / Audio</td>
+                        <td style="border:1px solid #000; padding:10px; width:20%">Dur</td>
+                    </tr>
+                `;
+
+                for(let i=0; i<6; i++) {
+                    const slot = this.slots[i];
+                    const d = this.shotData[i];
+                    const dur = Math.ceil(this.countWords(d.script)/3);
+                    rows += `<tr>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${slot ? slot.label : 'Shot ' + (i+1)}</b><br>${d.desc}<br><br><i>Nat: ${d.nat}</i></td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d.script}</td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${dur.toString().padStart(2,'0')}</td>
+                    </tr>`;
+                }
+
+                rows += `<tr>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br>${intName}<br>${intTitle}</td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${intText}</td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(intText)/3).toString().padStart(2,'0')}</td>
+                </tr>`;
+
+                if(this.hasCutaway) {
+                    const cSlot = this.cutawaySlot;
+                    rows += `<tr>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${cSlot ? cSlot.label : 'Cutaway'}</b><br>${this.cutawayData.desc}<br><br><i>Nat: ${this.cutawayData.nat}</i></td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${this.cutawayData.script}</td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.cutawayData.script)/3).toString().padStart(2,'0')}</td>
+                    </tr>`;
+                    rows += `<tr>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br><i>(Cut back)</i></td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${this.intText2}</td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.intText2)/3).toString().padStart(2,'0')}</td>
+                    </tr>`;
+                }
+
+                const d7 = this.shotData[6];
+                rows += `<tr>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${this.slots[6] ? this.slots[6].label : 'Playout Shot'}</b><br>${d7.desc}<br><br><i>Nat: ${d7.nat}</i></td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d7.script}</td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(d7.script)/3).toString().padStart(2,'0')}</td>
+                </tr>`;
+
+                rows += `<tr><td colspan="2" style="border:1px solid #000; padding:10px; font-weight:bold;">Runs (excl Cue)</td><td style="border:1px solid #000; padding:10px; font-weight:bold;">${total}s</td></tr>`;
+
+                const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Script</title></head><body style="font-family:Arial"><h1>${document.getElementById('assignmentTitle').value}</h1><p>Student: ${document.getElementById('studentName').value}</p><table style="width:100%; border-collapse:collapse;">${rows}</table></body></html>`;
+                const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `Script_${document.getElementById('studentName').value.replace(/\s+/g,'_')}.doc`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        };
+
+        app.init();
+    </script>
+</body>
+</html>
