@@ -15,7 +15,7 @@ A stand alone webpage that allows a student to visually build formatted script f
 - Shows a live preview of script as student makes changes
 - Exports a word document with a script formatted for assessment submission
 
-## visualscript.html ## 
+## Visualscript.html ## 
 A more advanced version of scriptbuilder, this is still a stand alone webpage that allows a student to visually build a formatted script from blocks of content. There is no limit to the number of shots. 
 - Works as a standalone HMTL file (but requires connection to access scripts)
 - As well as the standard blocks, there is now an interview block which included the ability to add multiple cutaways. 
