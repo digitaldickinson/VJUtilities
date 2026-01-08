@@ -20,5 +20,5 @@ A more advanced version of scriptbuilder, this is still a stand alone webpage th
 - Works as a standalone HMTL file (but requires connection to access scripts)
 - As well as the standard blocks, there is now an interview block which included the ability to add multiple cutaways. 
 - Most shot blocks have the opportunity to specify overlay graphics if required. 
-- Shot blocks can be set to FULL UPSOT which denotes only NAT sound. No script.
-- Temporary lifts in NAT sound can be shown in script by adding the tag [UPSOT=X] where x is the number of seconds you want of nat sound.
+- Shot blocks can be set to FULL UPSOT/NAT which denotes only NAT sound. No script.
+- Temporary lifts in NAT sound (NAT POP) can be shown in script by adding the tag [UPSOT=X] where x is the number of seconds you want of nat sound.
