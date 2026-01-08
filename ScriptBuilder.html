@@ -69,7 +69,7 @@
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
             <h2 class="text-lg font-bold text-indigo-900 mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                Details
+                Package Details
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -100,7 +100,7 @@
             <div class="relative z-10">
                 <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="19" cy="5" r="1"/><circle cx="5" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="19" cy="19" r="1"/><circle cx="5" cy="19" r="1"/></svg>
-                    2. ...drop them into your sequence (7 Shots)
+                    2. ...drop them here so they match your sequence, including the end shot (7 Shots)
                 </h2>
                 <div id="board" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3"></div>
             </div>
@@ -108,8 +108,8 @@
 
         <div class="grid lg:grid-cols-12 gap-6">
             
-            <!-- COLUMN 1: REPORTER SCRIPT (3/12) -->
-            <div class="lg:col-span-3 bg-white h-fit rounded-2xl shadow-lg border border-slate-100 sticky top-24">
+            <!-- COLUMN 1: REPORTER SCRIPT (2/12) -->
+            <div class="lg:col-span-2 bg-white h-fit rounded-2xl shadow-lg border border-slate-100 sticky top-24">
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                     <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
@@ -123,12 +123,11 @@
                 
                 <div class="relative min-h-[600px] bg-white rounded-b-2xl">
                     <div id="scriptView" class="hidden w-full h-full p-4 text-base font-serif text-slate-700 leading-relaxed whitespace-pre-wrap overflow-y-auto absolute inset-0 cursor-text" 
-                         onmouseup="app.handleSelection()" 
                          title="Highlight text here, then click the Quote button on a shot">
                     </div>
 
                     <textarea id="scriptEdit" class="w-full h-full p-4 text-base font-serif text-slate-700 leading-relaxed border-none outline-none resize-none absolute inset-0 bg-white" 
-                              placeholder="Write or paste your script here and then press the Done button..." 
+                              placeholder="Write or paste your script here and then press the Done button. You can then select and add your script to the right shot..." 
                               oninput="app.updateScriptData(this.value)"></textarea>
                 </div>
                 <div class="p-2 border-t border-slate-100 text-right text-xs font-bold text-slate-400">
@@ -136,8 +135,8 @@
                 </div>
             </div>
 
-            <!-- COLUMN 2: BLOCKS (5/12) -->
-            <div class="lg:col-span-5 bg-indigo-50 p-6 rounded-2xl shadow-inner border border-indigo-100 flex flex-col gap-6 h-fit">
+            <!-- COLUMN 2: BLOCKS (6/12) -->
+            <div class="lg:col-span-6 bg-indigo-50 p-6 rounded-2xl shadow-inner border border-indigo-100 flex flex-col gap-6 h-fit">
                 
                 <!-- MOVED HERE: Duration Header -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -307,6 +306,11 @@
                 this.renderBoard();
                 this.renderInputs();
                 this.validate();
+                
+                // Add robust selection listener
+                document.addEventListener('selectionchange', () => {
+                    app.handleSelection();
+                });
             },
 
             // MOVED UP to ensure it is defined before usage
@@ -507,9 +511,9 @@
                                     ${options}
                                 </select>
                              </div>
-                             <div class="flex items-center gap-2 mb-2 p-2 rounded ${bgClass} bg-opacity-30">
+                             <div class="flex flex-col items-center gap-1 mb-2 p-2 rounded ${bgClass} bg-opacity-30 text-center">
                                 <div class="${colorClass}">${icon}</div>
-                                <div class="text-[10px] font-bold uppercase ${colorClass}">Hide Edit / Cutaway</div>
+                                <div class="text-[8px] font-bold uppercase ${colorClass}">Hide Edit / Cutaway</div>
                              </div>
                              <textarea oninput="app.updateCutawayData('desc', this.value)" class="w-full text-xs p-2 border border-slate-100 rounded bg-slate-50 focus:bg-white outline-none resize-none h-14 placeholder:text-slate-400 mb-2" placeholder="Visual description...">${this.cutawayData.desc}</textarea>
                              <div class="flex gap-2 items-center">
@@ -530,7 +534,7 @@
                                 <div class="text-emerald-800 font-bold uppercase text-xs">Sync Sound (Bridge)</div>
                                 <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded"><span id="dur-cutaway">(${cWords} words, ~${cDur}s)</span></div>
                             </div>
-                            <textarea oninput="app.updateCutawayData('script', this.value)" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none sync-sound-box" placeholder="&quot;Subject continues speaking over cutaway...&quot;">${this.cutawayData.script}</textarea>
+                            <textarea oninput="app.updateCutawayData('script', this.value)" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none sync-sound-box" placeholder="&quot;Continue transcription of interviewee speaking over cutaway...&quot;">${this.cutawayData.script}</textarea>
                         </div>
                         
                         <!-- REFINED SECOND MCU BLOCK - Aligned & Simplified -->
@@ -546,7 +550,7 @@
                                 <div class="text-emerald-800 font-bold uppercase text-xs">Soundbite (Part 2)</div>
                                 <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded"><span id="intDurationDisplay2">(${this.countWords(this.intText2)} words, ~${Math.ceil(this.countWords(this.intText2)/3)}s)</span></div>
                             </div>
-                            <textarea id="intText2" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none focus:border-emerald-400" placeholder="Final part of transcription..." oninput="app.updateIntText2(this.value)">${this.intText2}</textarea>
+                            <textarea id="intText2" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none focus:border-emerald-400" placeholder="Continue transcription..." oninput="app.updateIntText2(this.value)">${this.intText2}</textarea>
                         </div>
                     `;
                 }
@@ -570,7 +574,7 @@
                          <div class="flex justify-between items-center mb-1 opacity-50">
                             <div class="text-emerald-800 font-bold uppercase text-xs">Handover / Conclusion</div>
                         </div>
-                        <textarea disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg p-3 text-slate-400 outline-none h-32 resize-none italic" placeholder="Add a playout shot to finish the package..."></textarea>`;
+                        <textarea disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg p-3 text-slate-400 outline-none h-32 resize-none italic" placeholder="Add a playout shot to finish the package and any final transcription of interview ..."></textarea>`;
                 } else {
                     const label = `<span class="${pSlot.color.split(' ')[1]}">Cut-Away: ${pSlot.label}</span>`;
                     playoutLeft = `
@@ -668,10 +672,21 @@
             },
 
             handleSelection() {
-                if(this.isEditMode) return;
+                if (this.isEditMode) {
+                    this.updatePasteButtons(); // Ensure disabled
+                    return;
+                }
                 const selection = window.getSelection();
-                const text = selection.toString().trim();
-                if(text.length > 0) { this.currentSelection = text; this.updatePasteButtons(); }
+                // Check if selection is within scriptView to avoid enabling for random text selection elsewhere
+                const scriptView = document.getElementById('scriptView');
+                let text = "";
+                
+                if (selection.rangeCount > 0 && scriptView.contains(selection.anchorNode)) {
+                     text = selection.toString().trim();
+                }
+                
+                this.currentSelection = text;
+                this.updatePasteButtons();
             },
 
             updatePasteButtons() {
@@ -768,9 +783,6 @@
                 document.getElementById('totalTime').innerText = sTime + iTime;
                 
                 this.validate();
-                // RenderPreview is already called in validate(), so we don't need it here again to avoid potential race/double calls, 
-                // but keeping it harmless or removing it if it caused the issue. 
-                // Given the error was "is not a function", the definition order was the key.
             },
 
             validate() {
@@ -847,4 +859,4 @@
         app.init();
     </script>
 </body>
-</html>
+</html>ss
