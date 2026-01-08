@@ -93,7 +93,6 @@
             </div>
         </div>
 
-        <!-- Palette Area -->
         <div class="bg-slate-800 text-white rounded-2xl p-6 shadow-2xl relative overflow-hidden">
             <div class="absolute top-0 right-0 p-32 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
             
@@ -119,7 +118,6 @@
 
         <div class="grid lg:grid-cols-12 gap-6 items-start">
             
-            <!-- Column 1: Sidebar Setup (Cue + Editor) -->
             <div class="lg:col-span-3 h-fit sticky top-24 space-y-6">
                 <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 relative shadow-sm">
                     <div class="absolute top-0 left-0 w-2 h-full bg-amber-400 rounded-l-lg"></div>
@@ -174,7 +172,6 @@
                             Script Preview
                         </h3>
                         
-                        <!-- Integrated Timing Stats -->
                         <div class="flex items-center gap-4">
                             <div class="hidden md:flex flex-col text-[9px] font-bold uppercase tracking-wider text-right opacity-80 gap-0.5">
                                 <div class="text-indigo-300">VO: <span id="scriptTime" class="text-white">0</span>s</div>
@@ -225,22 +222,14 @@
                 <div class="flex gap-4">
                     <div class="font-bold text-indigo-600 text-lg">2</div>
                     <div>
-                        <strong class="text-slate-800 block mb-1">Sync vs NAT</strong>
-                        Dialogue (Reporter VO or Interviews) appears in the <strong>Sync</strong> column. Natural sounds, atmospheric descriptions, and atmosphere breaks appear in the <strong>NAT</strong> column.
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <div class="font-bold text-indigo-600 text-lg">3</div>
-                    <div>
-                        <strong class="text-slate-800 block mb-1">[UPSOT=] tag</strong>
-                        To create a pause in your Voiceover for natural sound, type <strong>[UPSOT=x]</strong> (where x is seconds) inside the script box. This automatically splits the script row to show the timing.
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <div class="font-bold text-indigo-600 text-lg">4</div>
-                    <div>
-                        <strong class="text-slate-800 block mb-1">Overlay Graphics</strong>
-                        Check the "Overlay GFX" box on Wide, Medium, Close-up, or PTC shots to add text overlays (like locations, names, or bullet points). These appear as <strong>GFX:</strong> in the Visuals column.
+                        <strong class="text-slate-800 block mb-1">Script Tags</strong>
+                        <p class="mb-2">Use tags inside your script to control timing and visuals:</p>
+                        <ul class="list-disc pl-4 space-y-2">
+                            <li><strong>[NATPOP=x]</strong>: Pause for x seconds of natural sound. <br><em>e.g. [NATPOP=3:Screaming]</em></li>
+                            <li><strong>[SOT=x:Words]</strong>: Pause for x seconds of specific soundbite. <br><em>e.g. [SOT=4:We won't go!]</em></li>
+                            <li><strong>[PAUSE=x]</strong>: Insert x seconds of silence/breather. <br><em>e.g. [PAUSE=2]</em></li>
+                            <li><strong>[GFX=Text]</strong>: Insert a graphic overlay instruction at this exact word. <br><em>e.g. [GFX=Super: Joe Bloggs]</em></li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -366,15 +355,15 @@
                                 <textarea oninput="app.updateShotData(${idx}, 'desc', this.value)" class="flex-grow text-sm p-2 border border-slate-100 rounded bg-slate-50 focus:bg-white outline-none h-14 resize-none" placeholder="Visual description...">${item.data.desc || ""}</textarea>
                                 <div class="flex flex-col gap-2 min-w-[120px]">
                                     ${supportsOverlay ? `<label class="flex items-center gap-2 cursor-pointer group"><input type="checkbox" class="w-4 h-4 rounded text-amber-600" onchange="app.updateShotData(${idx}, 'isOverlay', this.checked); app.renderInputs();" ${item.data.isOverlay ? 'checked' : ''}><span class="text-[10px] font-bold text-slate-400 uppercase group-hover:text-amber-600">Overlay Gfx</span></label>` : ''}
-                                    ${(!isGraphic && !isPTC) ? `<label class="flex items-center gap-2 cursor-pointer group"><input type="checkbox" class="w-4 h-4 rounded text-indigo-600" onchange="app.updateShotData(${idx}, 'isFullUpsot', this.checked); app.renderInputs();" ${item.data.isFullUpsot ? 'checked' : ''}><span class="text-[10px] font-bold text-slate-400 uppercase group-hover:text-indigo-600">Full UPSOT</span></label>` : ''}
+                                    ${(!isGraphic && !isPTC) ? `<label class="flex items-center gap-2 cursor-pointer group"><input type="checkbox" class="w-4 h-4 rounded text-indigo-600" onchange="app.updateShotData(${idx}, 'isFullUpsot', this.checked); app.renderInputs();" ${item.data.isFullUpsot ? 'checked' : ''}><span class="text-[10px] font-bold text-slate-400 uppercase group-hover:text-indigo-600">Full Nat</span></label>` : ''}
                                 </div>
                             </div>
                             ${(supportsOverlay && item.data.isOverlay) ? `<div class="flex flex-col gap-1 border-b border-amber-50 pb-2"><span class="text-[10px] font-bold text-amber-600 uppercase">Overlay Gfx</span><textarea oninput="app.updateShotData(${idx}, 'overlayText', this.value)" class="w-full text-xs p-1.5 border border-amber-100 bg-amber-50/20 rounded resize-y min-h-[60px]" placeholder="GFX Details (one per line)...">${item.data.overlayText || ''}</textarea></div>` : ''}
                             ${(!isGraphic && !isPTC) ? `<div class="flex gap-2 items-center border-b border-slate-50 pb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">NAT Sound</span><input type="text" oninput="app.updateShotData(${idx}, 'nat', this.value)" class="w-full text-xs p-1.5 border border-slate-100 rounded" placeholder="NAT Details..." value="${item.data.nat || ''}"></div>` : ''}
                             ${item.type === 'library' ? `<div class="flex gap-2 items-center mt-2 pb-2 border-b border-slate-50"><span class="text-[10px] font-bold text-slate-400 uppercase">Credit</span><input type="text" oninput="app.updateShotData(${idx}, 'attribution', this.value)" class="w-full text-xs p-1.5 border border-pink-100 bg-pink-50/20 rounded" placeholder="Source credit..." value="${item.data.attribution || ''}"></div>` : ''}
                             <div class="space-y-3">
-                                ${isFullUpsot ? `<div class="flex gap-3 items-center justify-between"><div class="flex flex-col gap-0.5"><span class="text-[9px] font-bold text-indigo-400 uppercase">UPSOT Duration (s)</span><input type="number" min="0" oninput="app.updateShotData(${idx}, 'upsotDur', this.value)" class="w-16 text-xs p-1.5 border border-indigo-100 bg-indigo-50/20 rounded text-center font-bold" value="${item.data.upsotDur || ''}"></div><div class="text-right"><div class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Block Total</div><div class="text-lg font-bold text-indigo-600 leading-none" id="block-dur-${idx}">${blockDur}s</div></div></div>` :
-                                `<div class="flex gap-2 pt-2 border-t border-slate-50"><button onclick="app.pasteToShot(${idx})" class="btn-paste p-2 rounded w-8 flex-shrink-0 flex items-center justify-center bg-indigo-50" ${btnDisabled ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button><div class="w-full relative"><textarea oninput="app.updateShotData(${idx}, 'script', this.value)" id="script-${idx}" class="w-full text-xs p-2 border border-slate-100 rounded outline-none resize-none h-20 bg-white font-serif italic" placeholder="Paste script. Use [UPSOT=x] tags.">${item.data.script || ""}</textarea><div class="absolute bottom-1 right-2 text-[9px] text-indigo-600 font-bold bg-white/80 px-1 rounded shadow-sm" id="block-dur-${idx}">${blockDur}s</div></div></div>`}
+                                ${isFullUpsot ? `<div class="flex gap-3 items-center justify-between"><div class="flex flex-col gap-0.5"><span class="text-[9px] font-bold text-indigo-400 uppercase">NAT Duration (s)</span><input type="number" min="0" oninput="app.updateShotData(${idx}, 'upsotDur', this.value)" class="w-16 text-xs p-1.5 border border-indigo-100 bg-indigo-50/20 rounded text-center font-bold" value="${item.data.upsotDur || ''}"></div><div class="text-right"><div class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Block Total</div><div class="text-lg font-bold text-indigo-600 leading-none" id="block-dur-${idx}">${blockDur}s</div></div></div>` :
+                                `<div class="flex gap-2 pt-2 border-t border-slate-50"><button onclick="app.pasteToShot(${idx})" class="btn-paste p-2 rounded w-8 flex-shrink-0 flex items-center justify-center bg-indigo-50" ${btnDisabled ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button><div class="w-full relative"><textarea oninput="app.updateShotData(${idx}, 'script', this.value)" id="script-${idx}" class="w-full text-xs p-2 border border-slate-100 rounded outline-none resize-none h-20 bg-white font-serif italic" placeholder="Paste script. Use [NATPOP=x], [SOT=x], [PAUSE=x], [GFX=Text]">${item.data.script || ""}</textarea><div class="absolute bottom-1 right-2 text-[9px] text-indigo-600 font-bold bg-white/80 px-1 rounded shadow-sm" id="block-dur-${idx}">${blockDur}s</div></div></div>`}
                             </div>
                         </div>
                     </div>`;
@@ -402,11 +391,11 @@
                     </div>`;
             },
 
-            // New helper to consistently split blocks by UPSOT tags
+            // Process segments with SOT, PAUSE, GFX support
             getProcessedSegments(item) {
                 if (item.type === 'interview') return []; 
                 
-                // If explicit full upsot override
+                // Explicit full upsot override
                 if (item.data.isFullUpsot && item.type !== 'graphic' && item.type !== 'ptc') {
                      return [{
                          type: 'upsot-full',
@@ -417,52 +406,112 @@
                 }
 
                 const script = item.data.script || "";
-                const parts = script.split(/\[UPSOT=(\d+)\]/); // Split by regex capturing group
+                
+                // Regex: [TYPE=VAL:DESC]
+                // Groups: 1=Type (UPSOT|NATPOP|SOT|PAUSE|GFX), 2=Value, 3=Desc (optional)
+                const parts = script.split(/\[(UPSOT|NATPOP|SOT|PAUSE|GFX)=([^:\]]+)(?::([^\]]+))?\]/); 
                 let segments = [];
                 
-                // If no tags, just return one segment
+                // Helper to push text segment
+                const pushText = (txt, extraVisual = null) => {
+                    if (!txt) return;
+                    const dur = Math.ceil(this.countWords(txt) / 3);
+                    segments.push({
+                        type: 'vo',
+                        text: `<strong>REPORTER:</strong> “${txt}”`,
+                        nat: item.data.nat ? `<strong>NAT:</strong> ${item.data.nat}` : '', 
+                        dur: dur,
+                        gfx: extraVisual // Attached GFX instruction
+                    });
+                };
+
+                // If no tags
                 if (parts.length === 1) {
-                    const txt = script; // Don't trim excessively to preserve intent, but countWords handles spaces
+                    const txt = script; 
                     const dur = Math.ceil(this.countWords(txt) / 3);
                     segments.push({
                         type: 'vo',
                         text: txt ? `<strong>REPORTER:</strong> “${txt}”` : '...',
                         nat: item.data.nat ? `<strong>NAT:</strong> ${item.data.nat}` : '',
-                        dur: dur
+                        dur: dur,
+                        gfx: null
                     });
                     return segments;
                 }
 
-                // If tags exist, iterate
-                for (let i = 0; i < parts.length; i++) {
-                    if (i % 2 === 0) {
-                        // Text Segment
-                        const txt = parts[i].trim();
-                        if (txt) {
-                            const dur = Math.ceil(this.countWords(txt) / 3);
-                            segments.push({
-                                type: 'vo',
-                                text: `<strong>REPORTER:</strong> “${txt}”`,
-                                nat: item.data.nat ? `<strong>NAT:</strong> ${item.data.nat}` : '', // Only apply general nat to VO lines?
-                                dur: dur
-                            });
-                        }
-                    } else {
-                        // UPSOT Duration Segment (captured by regex)
-                        const dur = parseInt(parts[i]);
-                        if (!isNaN(dur)) {
-                            segments.push({
-                                type: 'upsot',
-                                text: '', // No sync text
-                                nat: '<strong class="bg-indigo-100 text-indigo-700 px-1 rounded">UPSOT</strong>', // Explicit marker
-                                dur: dur
-                            });
+                let pendingGfx = null;
+
+                // Loop step is 4 (Text + 3 groups)
+                for (let i = 0; i < parts.length; i += 4) {
+                    // 1. Text segment (before the tag)
+                    const txt = parts[i] ? parts[i].trim() : '';
+                    if (txt) {
+                        pushText(txt, pendingGfx);
+                        pendingGfx = null; // Reset after attaching to text
+                    } else if (pendingGfx && i + 4 >= parts.length) {
+                        // Trailing GFX with no text after it? Attach to a dummy empty spacer or ignored?
+                        // Better to attach to next if possible, or ignore if end of string.
+                    }
+
+                    // 2. Tag processing
+                    if (i + 1 < parts.length) {
+                        const type = parts[i+1];    
+                        const val = parts[i+2];     // Duration or GFX Text
+                        const desc = parts[i+3] ? parts[i+3].trim() : null; // Optional description
+
+                        if (type === 'GFX') {
+                            // GFX is a marker for the NEXT segment. 
+                            // Input: [GFX=Lower Third]
+                            // Logic: It splits the visual block. We store it to attach to the next text node.
+                            pendingGfx = val + (desc ? `: ${desc}` : '');
+                        } 
+                        else {
+                            // Duration based tags
+                            const durVal = parseInt(val);
+                            if (!isNaN(durVal)) {
+                                if (type === 'SOT') {
+                                    segments.push({
+                                        type: 'sot',
+                                        text: `<strong>SOT:</strong> “${desc || '...'}”`,
+                                        nat: '', 
+                                        dur: durVal,
+                                        gfx: pendingGfx
+                                    });
+                                } else if (type === 'PAUSE') {
+                                    segments.push({
+                                        type: 'pause',
+                                        text: '', 
+                                        nat: '<span class="text-slate-400 italic">(Pause)</span>',
+                                        dur: durVal,
+                                        gfx: pendingGfx
+                                    });
+                                } else {
+                                    // NATPOP/UPSOT
+                                    let natHtml = '<strong class="bg-indigo-100 text-indigo-700 px-1 rounded">NATPOP</strong>';
+                                    if (desc) {
+                                        natHtml += `<br><span class="text-[9px] font-bold text-slate-500 uppercase">(${desc})</span>`;
+                                    }
+                                    segments.push({
+                                        type: 'upsot',
+                                        text: '',
+                                        nat: natHtml, 
+                                        dur: durVal,
+                                        gfx: pendingGfx
+                                    });
+                                }
+                                pendingGfx = null; // Reset if attached
+                            }
                         }
                     }
                 }
                 
+                // Handle case where GFX tag was at very end
+                if (pendingGfx) {
+                    segments.push({ type: 'vo', text: '...', nat: '', dur: 0, gfx: pendingGfx });
+                }
+
                 if (segments.length === 0) {
-                     segments.push({ type: 'vo', text: '...', nat: '', dur: 0 });
+                     segments.push({ type: 'vo', text: '...', nat: '', dur: 0, gfx: null });
                 }
                 
                 return segments;
@@ -506,34 +555,71 @@
                     } else {
                         // Standard blocks logic with splitting
                         const type = SHOT_TYPES.find(t => t.id === item.type);
-                        const isPTC = item.type === 'ptc';
                         
-                        let visualContent = `<strong>${type?.short || 'Shot'}</strong>`;
-                        if (item.data.isOverlay) visualContent += ` <span class="text-blue-500 font-bold text-[8px]">[OVERLAY]</span>`;
+                        let baseVisual = `<strong>${type?.short || 'Shot'}</strong>`;
+                        if (item.data.isOverlay) baseVisual += ` <span class="text-blue-500 font-bold text-[8px]">[OVERLAY]</span>`;
                         if (item.data.isOverlay && item.data.overlayText) {
-                            // Format multi-line GFX
                             const formattedOverlay = item.data.overlayText.replace(/\n/g, '<br>');
-                            visualContent += `<br><span class="text-[9px] text-blue-800"><strong>GFX:</strong><br>${formattedOverlay}</span>`;
+                            baseVisual += `<br><span class="text-[9px] text-blue-800"><strong>GFX:</strong><br>${formattedOverlay}</span>`;
                         }
-
-                        visualContent += `<br>${item.data.desc || ""}`;
-                        if (item.type === 'library' && item.data.attribution) visualContent += `<br><small class="text-[8px] opacity-60"><strong>GFX:</strong> ${item.data.attribution}</small>`;
+                        baseVisual += `<br>${item.data.desc || ""}`;
+                        if (item.type === 'library' && item.data.attribution) baseVisual += `<br><small class="text-[8px] opacity-60"><strong>GFX:</strong> ${item.data.attribution}</small>`;
 
                         const segments = this.getProcessedSegments(item);
                         
-                        segments.forEach((seg, i) => {
-                            // Only render the Visual cell on the first segment (using rowspan)
-                            const visualCell = (i === 0) 
-                                ? `<td rowspan="${segments.length}">${visualContent}</td>` 
-                                : ''; // Implicitly handled by rowspan
-                            
-                            rowsHtml += `
-                                <tr>
-                                    ${visualCell}
-                                    <td>${seg.text}</td>
-                                    <td class="uppercase text-[8px]">${seg.nat}</td>
-                                    <td>0:${seg.dur.toString().padStart(2, '0')}</td>
-                                </tr>`;
+                        // We need to group segments by their Visual state to determine rowspan
+                        // A new visual group starts if it's the first item OR if the gfx instruction changes
+                        let visualGroups = [];
+                        let currentGroup = [];
+                        
+                        segments.forEach(seg => {
+                            if (currentGroup.length === 0) {
+                                currentGroup.push(seg);
+                            } else {
+                                const prev = currentGroup[currentGroup.length-1];
+                                // If GFX state is different, split group
+                                if (prev.gfx !== seg.gfx) {
+                                    visualGroups.push(currentGroup);
+                                    currentGroup = [seg];
+                                } else {
+                                    currentGroup.push(seg);
+                                }
+                            }
+                        });
+                        if(currentGroup.length > 0) visualGroups.push(currentGroup);
+
+                        // Render groups
+                        visualGroups.forEach((group, gIdx) => {
+                            group.forEach((seg, sIdx) => {
+                                let visualCell = '';
+                                if (sIdx === 0) {
+                                    // Construct visual content for this group
+                                    let content;
+                                    
+                                    if (gIdx === 0) {
+                                        // First group uses the full visual description
+                                        content = baseVisual;
+                                    } else {
+                                        // Subsequent groups (caused by GFX split) use (Cont.)
+                                        content = `<strong class="text-slate-400">${type?.short || 'Shot'} (Cont.)</strong>`;
+                                    }
+
+                                    // If this group has a specific GFX instruction triggered by tag
+                                    if (seg.gfx) {
+                                        content += `<br><div class="mt-2 border-t border-slate-200 pt-1 text-blue-800 text-[9px]"><strong>GFX:</strong> ${seg.gfx}</div>`;
+                                    }
+                                    
+                                    visualCell = `<td rowspan="${group.length}">${content}</td>`;
+                                }
+
+                                rowsHtml += `
+                                    <tr>
+                                        ${visualCell}
+                                        <td>${seg.text}</td>
+                                        <td class="uppercase text-[8px]">${seg.nat}</td>
+                                        <td>0:${seg.dur.toString().padStart(2, '0')}</td>
+                                    </tr>`;
+                            });
                         });
                     }
                 });
@@ -571,14 +657,6 @@
                         </table>
                     </div>
                 `;
-            },
-
-            formatUpsotInText(text, isForNatColumn = false) {
-                if (isForNatColumn) {
-                    const matches = text.match(/\[UPSOT=(\d+)\]/g);
-                    return matches ? matches.map(m => `[UPSOT ${m.match(/\d+/)[0]}s]`).join('<br>') : '';
-                }
-                return text.replace(/\[UPSOT=(\d+)\]/g, '<span class="bg-indigo-100 text-indigo-700 px-1 rounded mx-0.5 font-bold text-[8px] uppercase">UPSOT $1s</span>');
             },
 
             // --- Core Functionality ---
@@ -672,8 +750,20 @@
             countWords(str) { return str ? str.trim().split(/\s+/).filter(w => w.length > 0).length : 0; },
             updateScriptData(val) { this.scriptContent = val; this.updateCalculations(); this.renderLivePreview(); },
             escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); },
-            parseInlineUpsot(text) { const m = text.match(/\[UPSOT=(\d+)\]/g); return m ? m.reduce((s, x) => s + parseInt(x.match(/\d+/)[0]), 0) : 0; },
-            cleanUpsotTags(text) { return text.replace(/\[UPSOT=\d+\]/g, ''); },
+            
+            // Regex handles [NATPOP=3], [NATPOP=3:Desc], [SOT=3], [SOT=3:Words], [PAUSE=x], [GFX=Text]
+            parseInlineUpsot(text) { 
+                const regex = /\[(?:UPSOT|NATPOP|SOT|PAUSE|GFX)=([^:\]]+)(?::[^\]]+)?\]/g;
+                let sum = 0;
+                let m;
+                while ((m = regex.exec(text)) !== null) {
+                    const val = parseInt(m[1]); // This works for NATPOP/SOT/PAUSE. For GFX it is likely text, which results in NaN and is ignored.
+                    if (!isNaN(val)) sum += val;
+                }
+                return sum;
+            },
+            
+            cleanUpsotTags(text) { return text.replace(/\[(?:UPSOT|NATPOP|SOT|PAUSE|GFX)=[^\]]+\]/g, ''); },
 
             updateCalculations() {
                 let sTime = 0; let iTime = 0;
@@ -716,31 +806,65 @@
                         });
                     } else {
                         const type = SHOT_TYPES.find(t => t.id === item.type);
-                        const isPTC = item.type === 'ptc';
                         
-                        let visualContent = `<b>${type?.short || 'Shot'}</b>`;
-                        if (item.data.isOverlay) visualContent += ` <span style="color:blue; font-size:8px;">[OVERLAY]</span>`;
+                        let baseVisual = `<b>${type?.short || 'Shot'}</b>`;
+                        if (item.data.isOverlay) baseVisual += ` <span style="color:blue; font-size:8px;">[OVERLAY]</span>`;
                         if (item.data.isOverlay && item.data.overlayText) {
                              const formattedOverlay = item.data.overlayText.replace(/\n/g, '<br>');
-                             visualContent += `<br><b>GFX:</b><br>${formattedOverlay}`;
+                             baseVisual += `<br><b>GFX:</b><br>${formattedOverlay}`;
                         }
 
-                        visualContent += `<br>${item.data.desc || ""}`;
-                        if (item.type === 'library' && item.data.attribution) visualContent += `<br><b>GFX:</b> ${item.data.attribution}`;
+                        baseVisual += `<br>${item.data.desc || ""}`;
+                        if (item.type === 'library' && item.data.attribution) baseVisual += `<br><b>GFX:</b> ${item.data.attribution}`;
                         
                         const segments = this.getProcessedSegments(item);
 
-                        segments.forEach((seg, i) => {
-                            const visualCell = (i === 0) 
-                                ? `<td rowspan="${segments.length}" style="border:1px solid #000; padding:10px; vertical-align:top;">${visualContent}</td>` 
-                                : '';
-                            
-                            // For DOC export, explicit rowspan is necessary. 
-                            // Note: We strip HTML tags from segments for the DOC variable content (except B/Strong) to ensure cleanliness
-                            const cleanText = seg.text.replace(/<[^>]*>/g, '').replace(/REPORTER:/, '<b>REPORTER:</b>');
-                            const cleanNat = seg.nat.replace(/<[^>]*>/g, '').replace(/NAT:/, '<b>NAT:</b>');
+                        // Visual grouping logic for DOC
+                        let visualGroups = [];
+                        let currentGroup = [];
+                        
+                        segments.forEach(seg => {
+                            if (currentGroup.length === 0) {
+                                currentGroup.push(seg);
+                            } else {
+                                const prev = currentGroup[currentGroup.length-1];
+                                if (prev.gfx !== seg.gfx) {
+                                    visualGroups.push(currentGroup);
+                                    currentGroup = [seg];
+                                } else {
+                                    currentGroup.push(seg);
+                                }
+                            }
+                        });
+                        if(currentGroup.length > 0) visualGroups.push(currentGroup);
 
-                            rows += `<tr>${visualCell}<td style="border:1px solid #000; padding:10px; vertical-align:top;">${cleanText}</td><td style="border:1px solid #000; padding:10px; vertical-align:top; text-transform:uppercase; font-size:8px;">${cleanNat}</td><td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${seg.dur.toString().padStart(2,'0')}</td></tr>`;
+                        visualGroups.forEach((group, gIdx) => {
+                            group.forEach((seg, i) => {
+                                let visualCell = '';
+                                if(i === 0) {
+                                    let content;
+                                    if(gIdx === 0) {
+                                        content = baseVisual;
+                                    } else {
+                                        // Continuation logic for DOC export
+                                        content = `<b style="color:#94a3b8;">${type?.short || 'Shot'} (Cont.)</b>`;
+                                    }
+
+                                    if(seg.gfx) content += `<br><br><b style="color:blue;">GFX:</b> ${seg.gfx}`;
+                                    visualCell = `<td rowspan="${group.length}" style="border:1px solid #000; padding:10px; vertical-align:top;">${content}</td>`;
+                                }
+
+                                const cleanText = seg.text
+                                    .replace(/<strong[^>]*>REPORTER:<\/strong>/, '<b>REPORTER:</b>')
+                                    .replace(/<strong[^>]*>SOT:<\/strong>/, '<b>SOT:</b>')
+                                    .replace(/“/g, '"').replace(/”/g, '"');
+
+                                let cleanNat = seg.nat;
+                                if(cleanNat.includes('NATPOP')) cleanNat = cleanNat.replace('<br>', ' '); 
+                                cleanNat = cleanNat.replace(/<[^>]*>/g, '').replace(/NAT:/, '<b>NAT:</b>');
+                                
+                                rows += `<tr>${visualCell}<td style="border:1px solid #000; padding:10px; vertical-align:top;">${cleanText}</td><td style="border:1px solid #000; padding:10px; vertical-align:top; text-transform:uppercase; font-size:8px;">${cleanNat}</td><td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${seg.dur.toString().padStart(2,'0')}</td></tr>`;
+                            });
                         });
                     }
                 });
