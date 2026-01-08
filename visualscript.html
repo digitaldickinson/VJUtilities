@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VISUALSCRIPT - Flexible Package Planner</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body { background-color: #f8fafc; font-family: sans-serif; }
+        .drag-source { cursor: grab; transition: transform 0.2s; }
+        .drag-source:active { cursor: grabbing; transform: scale(0.95); }
+        .board-item { cursor: move; transition: all 0.2s; }
+        .board-item:active { transform: scale(0.9); opacity: 0.7; }
+        .drop-zone { transition: all 0.2s; }
+        .drop-zone.drag-over { background-color: #e0e7ff; border-color: #6366f1; transform: scale(1.02); }
+        .hidden { display: none !important; }
+        
+        /* Button States */
+        .btn-paste { transition: all 0.2s; }
+        .btn-paste:disabled { opacity: 0.3; cursor: not-allowed; background-color: #f1f5f9; color: #94a3b8; }
+        .btn-paste:not(:disabled) { background-color: #e0e7ff; color: #4338ca; cursor: pointer; }
+        .btn-paste:not(:disabled):hover { background-color: #c7d2fe; transform: scale(1.05); }
+
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        
+        /* Highlights */
+        .highlight-wide { background-color: #dbeafe; color: #1e40af; border-radius: 2px; padding: 2px 0; } 
+        .highlight-medium { background-color: #dcfce7; color: #166534; border-radius: 2px; padding: 2px 0; } 
+        .highlight-closeup { background-color: #f3e8ff; color: #6b21a8; border-radius: 2px; padding: 2px 0; } 
+        .highlight-unusual { background-color: #ffedd5; color: #9a3412; border-radius: 2px; padding: 2px 0; } 
+        .highlight-library { background-color: #fce7f3; color: #9d174d; border-radius: 2px; padding: 2px 0; } 
+        .highlight-graphic { background-color: #cffafe; color: #155f75; border-radius: 2px; padding: 2px 0; }
+        .highlight-ptc { background-color: #fef3c7; color: #92400e; border-radius: 2px; padding: 2px 0; }
+        
+        /* Error Input */
+        .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+
+        /* Modal Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-modal { animation: fadeIn 0.2s ease-out forwards; }
+
+        /* Preview Table Styles */
+        .preview-table { width: 100%; border-collapse: collapse; font-size: 10px; background: white; table-layout: fixed; }
+        .preview-table th, .preview-table td { border: 1px solid #e2e8f0; padding: 6px; vertical-align: top; text-align: left; overflow-wrap: break-word; }
+        .preview-table th { background: #f8fafc; font-weight: bold; text-transform: uppercase; color: #475569; font-size: 8px; }
+        .preview-cue { background: #fffbeb; border: 2px solid #fef3c7; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 12px; font-family: serif; font-style: italic; }
+
+        /* Custom Scrollbar for Preview */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-full mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>
+                </div>
+                <h1 class="font-bold text-xl tracking-tight text-slate-800">VISUALSCRIPT</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="helpBtn" onclick="app.showHelp()" class="flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors px-3 py-2 rounded-lg hover:bg-slate-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                    Help
+                </button>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <button onclick="app.reset()" class="text-sm font-bold text-slate-500 hover:text-red-600 transition-colors">Start New Assignment</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-full mx-auto px-6 py-8 space-y-8">
+
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+            <h2 class="text-lg font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Package Details
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Reporter Name</label>
+                    <input type="text" id="studentName" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Enter your name" oninput="app.validate(); app.renderLivePreview();">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Slug</label>
+                    <input type="text" id="assignmentTitle" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Campus News Package" oninput="app.validate(); app.renderLivePreview();">
+                </div>
+            </div>
+        </div>
+
+        <!-- Palette Area -->
+        <div class="bg-slate-800 text-white rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-32 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
+            
+            <div class="relative z-10 mb-8">
+                <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>
+                    1. Drag blocks from here...
+                </h2>
+                <div id="palette" class="flex flex-wrap gap-3 p-4 bg-slate-700/50 rounded-xl border border-slate-600 overflow-x-auto">
+                </div>
+            </div>
+
+            <div class="relative z-10">
+                <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="19" cy="5" r="1"/><circle cx="5" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="19" cy="19" r="1"/><circle cx="5" cy="19" r="1"/></svg>
+                    2. ...to recreate your package sequence (Drag items to reorder)
+                </h2>
+                <div id="board" class="flex flex-wrap gap-3 min-h-[128px] p-4 bg-slate-700/30 rounded-xl border-2 border-dashed border-slate-600"
+                     ondragover="app.allowDrop(event)" ondrop="app.drop(event)">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Column 1: Sidebar Setup (Cue + Editor) -->
+            <div class="lg:col-span-3 h-fit sticky top-24 space-y-6">
+                <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 relative shadow-sm">
+                    <div class="absolute top-0 left-0 w-2 h-full bg-amber-400 rounded-l-lg"></div>
+                    <div class="flex justify-between items-center mb-2 pl-3">
+                        <div class="flex items-center gap-2 text-amber-800 font-bold uppercase tracking-wider text-sm">CUE (Studio Intro)</div>
+                        <div class="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded">Time Excluded</div>
+                    </div>
+                    <textarea id="cueText" class="w-full bg-white border border-amber-100 rounded-lg p-3 text-sm text-slate-700 outline-none h-28 resize-none pl-3" placeholder="Write the intro..." oninput="app.validate(); app.renderLivePreview();"></textarea>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                    <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                            Reporter Script
+                        </h3>
+                        <button id="toggleScriptBtn" onclick="app.toggleScriptMode()" class="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors flex items-center gap-1 cursor-pointer uppercase">
+                            Done
+                        </button>
+                    </div>
+                    
+                    <div class="relative min-h-[400px] bg-white rounded-b-2xl">
+                        <div id="scriptView" class="hidden w-full h-full p-4 text-sm font-serif text-slate-700 leading-relaxed whitespace-pre-wrap overflow-y-auto absolute inset-0 cursor-text" 
+                             onmouseup="app.handleSelection()">
+                        </div>
+
+                        <textarea id="scriptEdit" class="w-full h-full p-4 text-sm font-serif text-slate-700 leading-relaxed border-none outline-none resize-none absolute inset-0 bg-white" 
+                                  placeholder="Write/Paste your main reporter script here and click Done..." 
+                                  oninput="app.updateScriptData(this.value)"></textarea>
+                    </div>
+                    <div class="p-2 border-t border-slate-100 text-right text-[10px] font-bold text-slate-400 uppercase">
+                        Word Count: <span id="scriptWordCount">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                <div id="sequenceInputs" class="flex flex-col gap-6">
+                </div>
+
+                <div id="emptyState" class="bg-white/50 border-2 border-dashed border-indigo-200 rounded-2xl p-12 text-center text-indigo-400">
+                    <p class="font-bold">No blocks added yet.</p>
+                    <p class="text-sm">Drag shots or interviews to start building.</p>
+                </div>
+            </div>
+
+            <div class="lg:col-span-4 h-fit sticky top-24">
+                <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-160px)]">
+                    <div class="p-4 bg-slate-900 text-white flex justify-between items-center">
+                        <h3 class="font-bold text-sm flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13l-5 3-5-3v-6l5-3 5 3z"/></svg>
+                            Script Preview
+                        </h3>
+                        
+                        <!-- Integrated Timing Stats -->
+                        <div class="flex items-center gap-4">
+                            <div class="hidden md:flex flex-col text-[9px] font-bold uppercase tracking-wider text-right opacity-80 gap-0.5">
+                                <div class="text-indigo-300">VO: <span id="scriptTime" class="text-white">0</span>s</div>
+                                <div class="text-emerald-300">Int: <span id="intTime" class="text-white">0</span>s</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[9px] font-bold opacity-50 uppercase tracking-widest leading-none mb-1">Total</div>
+                                <div class="text-xl font-bold leading-none text-white">~<span id="totalTime">0</span>s</div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div id="livePreview" class="p-2 overflow-y-auto flex-grow bg-white custom-scroll">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="flex flex-col items-center gap-4 pb-12 pt-4">
+            <div id="errorMsg" class="hidden text-center text-red-600 text-sm font-bold bg-red-50 border border-red-200 px-6 py-3 rounded-lg shadow-sm animate-pulse"></div>
+            
+            <div class="flex gap-4">
+                <button id="btnDoc" onclick="app.exportDoc()" class="btn-disabled bg-green-700 hover:bg-green-800 text-white shadow-lg shadow-green-900/20 px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all">
+                    Export Script (.doc)
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="helpModal" class="hidden fixed inset-0 bg-slate-900/50 z-[60] flex items-center justify-center backdrop-blur-sm" onclick="if(event.target === this) app.closeHelp()">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden animate-modal">
+            <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800">How to use VISUALSCRIPT</h3>
+                <button onclick="app.closeHelp()" class="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-5 text-slate-600 text-sm leading-relaxed overflow-y-auto max-h-[70vh]">
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">1</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">The 4-Column Script</strong>
+                        VISUALSCRIPT creates professional split-page scripts. Columns are: <strong>Visuals</strong> (Camera), <strong>Audio: Sync</strong> (Dialogue), <strong>Audio: NAT</strong> (Background Sound), and <strong>Duration</strong>.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">2</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">Sync vs NAT</strong>
+                        Dialogue (Reporter VO or Interviews) appears in the <strong>Sync</strong> column. Natural sounds, atmospheric descriptions, and atmosphere breaks appear in the <strong>NAT</strong> column.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">3</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">[UPSOT=] tag</strong>
+                        To create a pause in your Voiceover for natural sound, type <strong>[UPSOT=x]</strong> (where x is seconds) inside the script box. This automatically splits the script row to show the timing.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">4</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">Overlay Graphics</strong>
+                        Check the "Overlay GFX" box on Wide, Medium, Close-up, or PTC shots to add text overlays (like locations, names, or bullet points). These appear as <strong>GFX:</strong> in the Visuals column.
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+                <button onclick="app.closeHelp()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ICONS = {
+            wide: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+            medium: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+            closeup: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+            unusual: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+            library: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13 5 3-5 3v-6z"/></svg>',
+            graphic: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" ry="2" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+            interview: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
+            ptc: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>'
+        };
+
+        const SHOT_TYPES = [
+            { id: 'wide', label: 'Wide Shot', short: 'WS', desc: 'Sets the scene.', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+            { id: 'medium', label: 'Medium Shot', short: 'MS', desc: 'Places the Subject in context.', color: 'bg-green-100 text-green-700 border-green-200' },
+            { id: 'closeup', label: 'Close-Up', short: 'CU', desc: 'Emphasises Detail.', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+            { id: 'ptc', label: 'PTC', short: 'PTC', desc: 'Piece to Camera.', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+            { id: 'unusual', label: 'Unusual Angle', short: 'UA', desc: 'POV,low or high angle etc.', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+            { id: 'library', label: 'Library', short: 'Lib', desc: 'Archive or third party content.', color: 'bg-pink-100 text-pink-700 border-pink-200' },
+            { id: 'graphic', label: 'Graphic', short: 'Gfx', desc: 'Full screen.', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+            { id: 'interview', label: 'Interview', short: 'Int', desc: 'Clip of interview. Option to add cutaways', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' }
+        ];
+
+        const app = {
+            sequence: [],
+            scriptContent: "",
+            isEditMode: true,
+            currentSelection: "",
+
+            init() {
+                this.renderPalette();
+                this.renderBoard();
+                this.renderInputs();
+                this.validate();
+            },
+
+            showHelp() { document.getElementById('helpModal').classList.remove('hidden'); },
+            closeHelp() { document.getElementById('helpModal').classList.add('hidden'); },
+
+            renderPalette() {
+                document.getElementById('palette').innerHTML = SHOT_TYPES.map(type => `
+                    <div class="drag-source flex flex-col items-center justify-center p-3 rounded-xl border-2 shadow-sm ${type.color} h-32 w-32 select-none flex-shrink-0"
+                         draggable="true" ondragstart="app.dragStartPalette(event, '${type.id}')">
+                        <div class="mb-1 transform scale-75">${ICONS[type.id]}</div>
+                        <div class="font-bold text-[10px] text-center uppercase">${type.label}</div>
+                        <div class="text-[9px] mt-1 opacity-75 text-center leading-tight px-1">${type.desc}</div>
+                    </div>
+                `).join('');
+            },
+
+            renderBoard() {
+                const board = document.getElementById('board');
+                if (this.sequence.length === 0) {
+                    board.innerHTML = `<div class="w-full text-center text-slate-400 py-8 text-xs uppercase font-bold tracking-widest">Drop blocks here</div>`;
+                    return;
+                }
+                board.innerHTML = this.sequence.map((item, idx) => {
+                    const type = SHOT_TYPES.find(t => t.id === item.type);
+                    return `
+                        <div class="relative board-item flex flex-col items-center justify-center p-2 rounded-xl border-2 shadow-sm ${type.color} h-24 w-24"
+                             draggable="true" ondragstart="app.dragStartBoard(event, ${idx})" ondragover="app.allowDrop(event)" ondrop="app.dropOnItem(event, ${idx})">
+                            <button onclick="app.removeBlock(${idx})" class="absolute -top-2 -right-2 bg-white text-slate-400 hover:text-red-500 rounded-full p-1 border shadow z-10 text-[10px]">✕</button>
+                            <div class="mb-1 transform scale-50">${ICONS[type.id]}</div>
+                            <div class="font-bold text-[8px] text-center uppercase">${type.label}</div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            renderInputs() {
+                const container = document.getElementById('sequenceInputs');
+                const empty = document.getElementById('emptyState');
+                if (this.sequence.length === 0) {
+                    container.innerHTML = ''; empty.classList.remove('hidden'); this.renderLivePreview(); return;
+                }
+                empty.classList.add('hidden');
+                container.innerHTML = this.sequence.map((item, idx) => {
+                    if (item.type === 'interview') return this.getInterviewCardHtml(item, idx);
+                    return this.getShotCardHtml(item, idx);
+                }).join('');
+                
+                this.updateCalculations();
+                this.renderLivePreview();
+            },
+
+            getShotCardHtml(item, idx) {
+                const type = SHOT_TYPES.find(t => t.id === item.type);
+                const isGraphic = item.type === 'graphic';
+                const isPTC = item.type === 'ptc';
+                const isFullUpsot = item.data.isFullUpsot && !isGraphic && !isPTC;
+                const blockDur = isFullUpsot ? (parseInt(item.data.upsotDur) || 0) : Math.ceil(this.countWords(this.cleanUpsotTags(item.data.script || "")) / 3) + this.parseInlineUpsot(item.data.script || "");
+                const btnDisabled = this.isEditMode || !this.currentSelection;
+                
+                const supportsOverlay = ['ptc', 'wide', 'medium', 'closeup', 'unusual'].includes(item.type);
+
+                return `
+                    <div class="bg-white rounded-xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md">
+                        <div class="px-4 py-2 border-b flex justify-between items-center bg-opacity-30 ${type.color.replace('text-', 'bg-').split(' ')[0]}">
+                            <div class="flex items-center gap-3">
+                                <div class="font-bold text-xs uppercase text-slate-600">Block ${idx+1}: ${type.label}</div>
+                                <div class="flex gap-1">
+                                    <button onclick="app.moveBlock(${idx}, -1)" class="p-1 text-slate-400 disabled:opacity-20" ${idx === 0 ? 'disabled' : ''}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                                    </button>
+                                    <button onclick="app.moveBlock(${idx}, 1)" class="p-1 text-slate-400 disabled:opacity-20" ${idx === this.sequence.length - 1 ? 'disabled' : ''}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <button onclick="app.removeBlock(${idx})" class="text-slate-400 hover:text-red-500">✕</button>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            <div class="flex gap-4">
+                                <textarea oninput="app.updateShotData(${idx}, 'desc', this.value)" class="flex-grow text-sm p-2 border border-slate-100 rounded bg-slate-50 focus:bg-white outline-none h-14 resize-none" placeholder="Visual description...">${item.data.desc || ""}</textarea>
+                                <div class="flex flex-col gap-2 min-w-[120px]">
+                                    ${supportsOverlay ? `<label class="flex items-center gap-2 cursor-pointer group"><input type="checkbox" class="w-4 h-4 rounded text-amber-600" onchange="app.updateShotData(${idx}, 'isOverlay', this.checked); app.renderInputs();" ${item.data.isOverlay ? 'checked' : ''}><span class="text-[10px] font-bold text-slate-400 uppercase group-hover:text-amber-600">Overlay Gfx</span></label>` : ''}
+                                    ${(!isGraphic && !isPTC) ? `<label class="flex items-center gap-2 cursor-pointer group"><input type="checkbox" class="w-4 h-4 rounded text-indigo-600" onchange="app.updateShotData(${idx}, 'isFullUpsot', this.checked); app.renderInputs();" ${item.data.isFullUpsot ? 'checked' : ''}><span class="text-[10px] font-bold text-slate-400 uppercase group-hover:text-indigo-600">Full UPSOT</span></label>` : ''}
+                                </div>
+                            </div>
+                            ${(supportsOverlay && item.data.isOverlay) ? `<div class="flex flex-col gap-1 border-b border-amber-50 pb-2"><span class="text-[10px] font-bold text-amber-600 uppercase">Overlay Gfx</span><textarea oninput="app.updateShotData(${idx}, 'overlayText', this.value)" class="w-full text-xs p-1.5 border border-amber-100 bg-amber-50/20 rounded resize-y min-h-[60px]" placeholder="GFX Details (one per line)...">${item.data.overlayText || ''}</textarea></div>` : ''}
+                            ${(!isGraphic && !isPTC) ? `<div class="flex gap-2 items-center border-b border-slate-50 pb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">NAT Sound</span><input type="text" oninput="app.updateShotData(${idx}, 'nat', this.value)" class="w-full text-xs p-1.5 border border-slate-100 rounded" placeholder="NAT Details..." value="${item.data.nat || ''}"></div>` : ''}
+                            ${item.type === 'library' ? `<div class="flex gap-2 items-center mt-2 pb-2 border-b border-slate-50"><span class="text-[10px] font-bold text-slate-400 uppercase">Credit</span><input type="text" oninput="app.updateShotData(${idx}, 'attribution', this.value)" class="w-full text-xs p-1.5 border border-pink-100 bg-pink-50/20 rounded" placeholder="Source credit..." value="${item.data.attribution || ''}"></div>` : ''}
+                            <div class="space-y-3">
+                                ${isFullUpsot ? `<div class="flex gap-3 items-center justify-between"><div class="flex flex-col gap-0.5"><span class="text-[9px] font-bold text-indigo-400 uppercase">UPSOT Duration (s)</span><input type="number" min="0" oninput="app.updateShotData(${idx}, 'upsotDur', this.value)" class="w-16 text-xs p-1.5 border border-indigo-100 bg-indigo-50/20 rounded text-center font-bold" value="${item.data.upsotDur || ''}"></div><div class="text-right"><div class="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Block Total</div><div class="text-lg font-bold text-indigo-600 leading-none" id="block-dur-${idx}">${blockDur}s</div></div></div>` :
+                                `<div class="flex gap-2 pt-2 border-t border-slate-50"><button onclick="app.pasteToShot(${idx})" class="btn-paste p-2 rounded w-8 flex-shrink-0 flex items-center justify-center bg-indigo-50" ${btnDisabled ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button><div class="w-full relative"><textarea oninput="app.updateShotData(${idx}, 'script', this.value)" id="script-${idx}" class="w-full text-xs p-2 border border-slate-100 rounded outline-none resize-none h-20 bg-white font-serif italic" placeholder="Paste script. Use [UPSOT=x] tags.">${item.data.script || ""}</textarea><div class="absolute bottom-1 right-2 text-[9px] text-indigo-600 font-bold bg-white/80 px-1 rounded shadow-sm" id="block-dur-${idx}">${blockDur}s</div></div></div>`}
+                            </div>
+                        </div>
+                    </div>`;
+            },
+
+            getInterviewCardHtml(item, idx) {
+                const segmentsHtml = item.data.segments.map((seg, sIdx) => {
+                    const segDur = Math.ceil(this.countWords(seg.text || '') / 3);
+                    if (seg.type === 'mcu') {
+                        return `<div class="grid grid-cols-12 gap-4 mt-4"><div class="col-span-4 bg-white border border-emerald-200 rounded-lg p-3 text-emerald-600 flex flex-col items-center justify-center h-24 relative group">${ICONS.medium}<span class="text-[10px] font-bold uppercase mt-1">MCU</span>${sIdx > 0 ? `<button onclick="app.removeSplit(${idx}, ${sIdx})" class="text-[8px] font-bold text-red-500 hover:text-red-700 uppercase bg-red-50 px-1.5 py-0.5 rounded border border-red-100 mt-2">Remove Split</button>` : ''}</div><div class="col-span-8 flex flex-col"><div class="flex justify-between items-center mb-1"><div class="text-emerald-800 font-bold uppercase text-[10px]">Part ${Math.floor(sIdx/2) + 1}</div><div class="text-[9px] font-bold text-emerald-600 bg-white px-2 py-0.5 rounded border border-emerald-100" id="dur-seg-${idx}-${sIdx}">${segDur}s</div></div><textarea oninput="app.updateInterviewSegment(${idx}, ${sIdx}, 'text', this.value)" class="w-full flex-grow bg-white border border-emerald-200 rounded-lg p-3 text-xs text-slate-700 outline-none h-24 resize-none" placeholder="Transcription...">${seg.text || ''}</textarea></div></div>`;
+                    } else {
+                        const dropdownOptions = SHOT_TYPES.filter(t => !['interview', 'ptc'].includes(t.id)).map(t => `<option value="${t.id}" ${seg.shotType === t.id ? 'selected' : ''}>${t.label}</option>`).join('');
+                        return `<div class="grid grid-cols-12 gap-4 mt-4 pl-8 relative group"><div class="absolute left-4 top-0 bottom-0 w-px bg-emerald-200"></div><div class="col-span-4 bg-white rounded-lg border border-emerald-200 p-3 flex flex-col gap-2 relative shadow-sm"><button onclick="app.removeInterviewSegment(${idx}, ${sIdx})" class="absolute top-1 right-1 text-slate-300 hover:text-red-600 text-[10px]">✕</button><div class="text-[9px] font-bold uppercase text-emerald-600">Cut-Away</div><select onchange="app.updateInterviewSegment(${idx}, ${sIdx}, 'shotType', this.value); app.renderInputs();" class="w-full text-[10px] p-1 border border-slate-200 rounded font-bold text-slate-600">${dropdownOptions}</select><textarea oninput="app.updateInterviewSegment(${idx}, ${sIdx}, 'desc', this.value)" class="w-full text-[10px] p-2 border border-slate-100 rounded resize-none h-14" placeholder="Visual...">${seg.desc || ''}</textarea><input type="text" oninput="app.updateInterviewSegment(${idx}, ${sIdx}, 'nat', this.value)" class="w-full text-[9px] p-1 border border-slate-100 rounded" placeholder="NAT sound..." value="${seg.nat || ''}"><button onclick="app.addShotToSplit(${idx}, ${sIdx})" class="mt-1 text-[8px] font-bold uppercase p-1.5 border border-emerald-100 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors">+ Add shot</button></div><div class="col-span-8 flex flex-col"><div class="flex justify-between items-center mb-1"><div class="text-slate-500 font-bold uppercase text-[10px]">Over Sync</div><div class="text-[9px] font-bold text-slate-400 bg-white px-2 py-0.5 rounded border border-emerald-100" id="dur-seg-${idx}-${sIdx}">${segDur}s</div></div><textarea oninput="app.updateInterviewSegment(${idx}, ${sIdx}, 'text', this.value)" class="w-full flex-grow bg-white border border-emerald-100 rounded-lg p-3 text-xs text-slate-700 italic outline-none h-24 resize-none focus:border-emerald-300" placeholder="Speech over clip...">${seg.text || ''}</textarea></div></div>`;
+                    }
+                }).join('');
+                return `
+                    <div class="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-6 relative shadow-sm">
+                        <div class="absolute top-0 left-0 w-2 h-full bg-emerald-400 rounded-l-lg"></div>
+                        <div class="flex justify-between items-center mb-4 pl-2">
+                            <div class="flex items-center gap-3"><h3 class="font-bold text-emerald-800 text-xs uppercase tracking-wider">Interview (Block ${idx+1})</h3><div class="flex gap-1"><button onclick="app.moveBlock(${idx}, -1)" class="p-1 text-emerald-400 disabled:opacity-20" ${idx === 0 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button><button onclick="app.moveBlock(${idx}, 1)" class="p-1 text-emerald-400 disabled:opacity-20" ${idx === this.sequence.length - 1 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div></div>
+                            <div class="flex gap-2"><button onclick="app.addSplit(${idx})" class="text-[9px] uppercase font-bold px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700">+ Add Split</button><button onclick="app.removeBlock(${idx})" class="text-emerald-400 hover:text-red-500 px-2">✕</button></div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pl-2 mb-4"><input type="text" oninput="app.updateShotData(${idx}, 'name', this.value)" class="w-full text-xs p-2 border border-emerald-200 rounded" placeholder="Name" value="${item.data.name || ''}"><input type="text" oninput="app.updateShotData(${idx}, 'title', this.value)" class="w-full text-xs p-2 border border-emerald-200 rounded focus:border-emerald-500 outline-none" placeholder="Job Title" value="${item.data.title || ''}"></div>
+                        <div class="space-y-4">${segmentsHtml}</div>
+                    </div>`;
+            },
+
+            // New helper to consistently split blocks by UPSOT tags
+            getProcessedSegments(item) {
+                if (item.type === 'interview') return []; 
+                
+                // If explicit full upsot override
+                if (item.data.isFullUpsot && item.type !== 'graphic' && item.type !== 'ptc') {
+                     return [{
+                         type: 'upsot-full',
+                         text: '', 
+                         nat: item.data.nat ? `<strong>NAT:</strong> ${item.data.nat}` : 'ATMOSPHERE',
+                         dur: parseInt(item.data.upsotDur) || 0
+                     }];
+                }
+
+                const script = item.data.script || "";
+                const parts = script.split(/\[UPSOT=(\d+)\]/); // Split by regex capturing group
+                let segments = [];
+                
+                // If no tags, just return one segment
+                if (parts.length === 1) {
+                    const txt = script; // Don't trim excessively to preserve intent, but countWords handles spaces
+                    const dur = Math.ceil(this.countWords(txt) / 3);
+                    segments.push({
+                        type: 'vo',
+                        text: txt ? `<strong>REPORTER:</strong> “${txt}”` : '...',
+                        nat: item.data.nat ? `<strong>NAT:</strong> ${item.data.nat}` : '',
+                        dur: dur
+                    });
+                    return segments;
+                }
+
+                // If tags exist, iterate
+                for (let i = 0; i < parts.length; i++) {
+                    if (i % 2 === 0) {
+                        // Text Segment
+                        const txt = parts[i].trim();
+                        if (txt) {
+                            const dur = Math.ceil(this.countWords(txt) / 3);
+                            segments.push({
+                                type: 'vo',
+                                text: `<strong>REPORTER:</strong> “${txt}”`,
+                                nat: item.data.nat ? `<strong>NAT:</strong> ${item.data.nat}` : '', // Only apply general nat to VO lines?
+                                dur: dur
+                            });
+                        }
+                    } else {
+                        // UPSOT Duration Segment (captured by regex)
+                        const dur = parseInt(parts[i]);
+                        if (!isNaN(dur)) {
+                            segments.push({
+                                type: 'upsot',
+                                text: '', // No sync text
+                                nat: '<strong class="bg-indigo-100 text-indigo-700 px-1 rounded">UPSOT</strong>', // Explicit marker
+                                dur: dur
+                            });
+                        }
+                    }
+                }
+                
+                if (segments.length === 0) {
+                     segments.push({ type: 'vo', text: '...', nat: '', dur: 0 });
+                }
+                
+                return segments;
+            },
+
+            // --- LIVE PREVIEW LOGIC (4 COLUMN DOC FORMAT) ---
+            renderLivePreview() {
+                const container = document.getElementById('livePreview');
+                if (!container) return;
+
+                const cue = document.getElementById('cueText').value;
+                const slug = document.getElementById('assignmentTitle').value || 'Untitled Assignment';
+                const reporter = document.getElementById('studentName').value || '...';
+                const total = document.getElementById('totalTime').innerText;
+
+                let rowsHtml = '';
+                this.sequence.forEach((item, idx) => {
+                    if (item.type === 'interview') {
+                        item.data.segments.forEach((seg, sIdx) => {
+                            const dur = Math.ceil(this.countWords(seg.text) / 3);
+                            if (seg.type === 'mcu') {
+                                const nameInfo = item.data.name || item.data.title ? `<br><strong>Lower-Third:</strong> ${item.data.name}${item.data.name && item.data.title ? ', ' : ''}${item.data.title}` : '';
+                                rowsHtml += `
+                                    <tr>
+                                        <td><strong>MCU</strong>${nameInfo}</td>
+                                        <td class="font-serif italic"><strong>INT:</strong> “${seg.text || '...'}”</td>
+                                        <td></td>
+                                        <td>0:${dur.toString().padStart(2, '0')}</td>
+                                    </tr>`;
+                            } else {
+                                const typeObj = SHOT_TYPES.find(t => t.id === seg.shotType) || { short: 'WS' };
+                                rowsHtml += `
+                                    <tr class="bg-slate-50">
+                                        <td><strong>${typeObj.short}</strong><br>${seg.desc || ''}</td>
+                                        <td class="font-serif italic"><strong>INT:</strong> “${seg.text || '...'}”</td>
+                                        <td class="uppercase text-[8px]">${seg.nat || ''}</td>
+                                        <td>0:${dur.toString().padStart(2, '0')}</td>
+                                    </tr>`;
+                            }
+                        });
+                    } else {
+                        // Standard blocks logic with splitting
+                        const type = SHOT_TYPES.find(t => t.id === item.type);
+                        const isPTC = item.type === 'ptc';
+                        
+                        let visualContent = `<strong>${type?.short || 'Shot'}</strong>`;
+                        if (item.data.isOverlay) visualContent += ` <span class="text-blue-500 font-bold text-[8px]">[OVERLAY]</span>`;
+                        if (item.data.isOverlay && item.data.overlayText) {
+                            // Format multi-line GFX
+                            const formattedOverlay = item.data.overlayText.replace(/\n/g, '<br>');
+                            visualContent += `<br><span class="text-[9px] text-blue-800"><strong>GFX:</strong><br>${formattedOverlay}</span>`;
+                        }
+
+                        visualContent += `<br>${item.data.desc || ""}`;
+                        if (item.type === 'library' && item.data.attribution) visualContent += `<br><small class="text-[8px] opacity-60"><strong>GFX:</strong> ${item.data.attribution}</small>`;
+
+                        const segments = this.getProcessedSegments(item);
+                        
+                        segments.forEach((seg, i) => {
+                            // Only render the Visual cell on the first segment (using rowspan)
+                            const visualCell = (i === 0) 
+                                ? `<td rowspan="${segments.length}">${visualContent}</td>` 
+                                : ''; // Implicitly handled by rowspan
+                            
+                            rowsHtml += `
+                                <tr>
+                                    ${visualCell}
+                                    <td>${seg.text}</td>
+                                    <td class="uppercase text-[8px]">${seg.nat}</td>
+                                    <td>0:${seg.dur.toString().padStart(2, '0')}</td>
+                                </tr>`;
+                        });
+                    }
+                });
+
+                container.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="border-b-2 border-slate-900 pb-2">
+                            <h4 class="text-lg font-bold uppercase">${slug}</h4>
+                            <p class="text-xs text-slate-500">Reporter: ${reporter}</p>
+                        </div>
+                        
+                        <div class="preview-cue">
+                            <div class="text-[10px] font-bold text-amber-600 uppercase mb-1">Cue</div>
+                            “${cue || '...'}”
+                        </div>
+
+                        <table class="preview-table">
+                            <thead>
+                                <tr>
+                                    <th width="25%">Visuals</th>
+                                    <th width="35%">Audio: Sync</th>
+                                    <th width="25%">Audio: NAT</th>
+                                    <th width="15%">Dur</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml || '<tr><td colspan="4" class="text-center py-10 opacity-30 italic">No blocks added</td></tr>'}
+                            </tbody>
+                            <tfoot class="font-bold bg-slate-900 text-white">
+                                <tr>
+                                    <td colspan="3">Runs (excl. Cue)</td>
+                                    <td>${total}s</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+            },
+
+            formatUpsotInText(text, isForNatColumn = false) {
+                if (isForNatColumn) {
+                    const matches = text.match(/\[UPSOT=(\d+)\]/g);
+                    return matches ? matches.map(m => `[UPSOT ${m.match(/\d+/)[0]}s]`).join('<br>') : '';
+                }
+                return text.replace(/\[UPSOT=(\d+)\]/g, '<span class="bg-indigo-100 text-indigo-700 px-1 rounded mx-0.5 font-bold text-[8px] uppercase">UPSOT $1s</span>');
+            },
+
+            // --- Core Functionality ---
+            dragStartPalette(ev, id) { ev.dataTransfer.setData("type", "palette"); ev.dataTransfer.setData("shotId", id); },
+            dragStartBoard(ev, idx) { ev.dataTransfer.setData("type", "board"); ev.dataTransfer.setData("fromIdx", idx); },
+            allowDrop(ev) { ev.preventDefault(); ev.currentTarget.classList.add('drag-over'); },
+            drop(ev) {
+                ev.preventDefault(); const type = ev.dataTransfer.getData("type"); document.getElementById('board').classList.remove('drag-over');
+                if (type === "palette") this.addBlock(ev.dataTransfer.getData("shotId"));
+                if (type === "board") this.moveBlockTo(parseInt(ev.dataTransfer.getData("fromIdx")), this.sequence.length - 1);
+            },
+            dropOnItem(ev, targetIdx) {
+                ev.preventDefault(); ev.stopPropagation(); const type = ev.dataTransfer.getData("type");
+                if (type === "palette") this.addBlockAt(ev.dataTransfer.getData("shotId"), targetIdx);
+                else if (type === "board") this.moveBlockTo(parseInt(ev.dataTransfer.getData("fromIdx")), targetIdx);
+                this.renderBoard(); this.renderInputs();
+            },
+
+            addBlock(id) {
+                if (id === 'interview') this.sequence.push({ type: 'interview', data: { name: '', title: '', segments: [{ type: 'mcu', text: '' }] } });
+                else if (id) this.sequence.push({ type: id, data: { desc: '', nat: '', script: '', upsotDur: '', isOverlay: false, isFullUpsot: false } });
+                this.renderBoard(); this.renderInputs(); this.validate();
+            },
+
+            addBlockAt(id, targetIdx) {
+                const newBlock = (id === 'interview') ? 
+                    { type: 'interview', data: { name: '', title: '', segments: [{ type: 'mcu', text: '' }] } } :
+                    { type: id, data: { desc: '', nat: '', script: '', upsotDur: '', isOverlay: false, isFullUpsot: false } };
+                this.sequence.splice(targetIdx, 0, newBlock);
+            },
+
+            moveBlock(idx, direction) { this.moveBlockTo(idx, idx + direction); },
+            moveBlockTo(fromIdx, toIdx) {
+                if (fromIdx === toIdx || isNaN(fromIdx) || toIdx < 0 || toIdx >= this.sequence.length) return;
+                const item = this.sequence.splice(fromIdx, 1)[0];
+                this.sequence.splice(toIdx, 0, item);
+                this.renderBoard(); this.renderInputs();
+            },
+
+            removeBlock(idx) { if (confirm("Delete block?")) { this.sequence.splice(idx, 1); this.renderBoard(); this.renderInputs(); this.validate(); } },
+            addSplit(idx) { this.sequence[idx].data.segments.push({ type: 'cutaway', shotType: 'closeup', desc: '', nat: '', text: '' }, { type: 'mcu', text: '' }); this.renderInputs(); },
+            addShotToSplit(blockIdx, segIdx) { this.sequence[blockIdx].data.segments.splice(segIdx + 1, 0, { type: 'cutaway', shotType: 'closeup', desc: '', nat: '', text: '' }); this.renderInputs(); },
+            removeInterviewSegment(blockIdx, segIdx) {
+                const segments = this.sequence[blockIdx].data.segments;
+                if (segments[segIdx].type === 'cutaway') {
+                    let start = segIdx; while (start > 0 && segments[start - 1].type === 'cutaway') start--;
+                    let end = segIdx; while (end < segments.length - 1 && segments[end + 1].type === 'cutaway') end++;
+                    if (end - start + 1 === 1) { if (confirm("Remove entire sequence?")) segments.splice(start, 2); else return; } else segments.splice(segIdx, 1);
+                } else if (segments.length > 1) segments.splice(segIdx, 1);
+                this.renderInputs(); this.updateCalculations(); this.validate();
+            },
+
+            removeSplit(blockIdx, mcuIdx) { if (confirm("Remove split?")) { let segments = this.sequence[blockIdx].data.segments; let startIdx = mcuIdx; while (startIdx > 0 && segments[startIdx - 1].type === 'cutaway') startIdx--; segments.splice(startIdx, (mcuIdx - startIdx) + 1); this.renderInputs(); this.validate(); } },
+
+            updateShotData(idx, field, val) {
+                this.sequence[idx].data[field] = val; this.updateCalculations();
+                if (field === 'isFullUpsot' || field === 'isOverlay') this.renderInputs();
+                else { 
+                    const durLabel = document.getElementById(`block-dur-${idx}`);
+                    if (durLabel) { let blockDur = this.sequence[idx].data.isFullUpsot ? (parseInt(this.sequence[idx].data.upsotDur) || 0) : Math.ceil(this.countWords(this.cleanUpsotTags(this.sequence[idx].data.script || "")) / 3) + this.parseInlineUpsot(this.sequence[idx].data.script || ""); durLabel.innerText = blockDur + 's'; }
+                    this.renderLivePreview();
+                }
+                this.validate();
+            },
+
+            updateInterviewSegment(blockIdx, segIdx, field, val) {
+                this.sequence[blockIdx].data.segments[segIdx][field] = val; this.updateCalculations();
+                if (field === 'text') { const durLabel = document.getElementById(`dur-seg-${blockIdx}-${segIdx}`); if (durLabel) durLabel.innerText = Math.ceil(this.countWords(val) / 3) + 's'; }
+                this.renderLivePreview();
+                this.validate();
+            },
+
+            toggleScriptMode() {
+                this.isEditMode = !this.isEditMode;
+                const btn = document.getElementById('toggleScriptBtn');
+                if (this.isEditMode) { btn.innerText = 'Done'; btn.classList.replace('bg-indigo-100', 'bg-green-100'); btn.classList.replace('text-indigo-700', 'text-green-700'); document.getElementById('scriptView').classList.add('hidden'); document.getElementById('scriptEdit').classList.remove('hidden'); document.getElementById('scriptEdit').value = this.scriptContent; }
+                else { btn.innerText = 'Edit'; btn.classList.replace('bg-green-100', 'bg-indigo-100'); btn.classList.replace('text-green-700', 'text-indigo-700'); document.getElementById('scriptEdit').classList.add('hidden'); document.getElementById('scriptView').classList.remove('hidden'); this.renderScriptView(); }
+                this.currentSelection = ""; this.updatePasteButtons();
+            },
+
+            renderScriptView() {
+                let html = this.escapeHtml(this.scriptContent); if(!html) { document.getElementById('scriptView').innerHTML = '<span class="text-slate-400 italic">No script...</span>'; return; }
+                this.sequence.forEach((item, i) => { if (item.type !== 'interview' && item.data.script && item.data.script.trim()) { const cleanTxt = this.cleanUpsotTags(item.data.script).trim(); if (cleanTxt) { const escapedClean = this.escapeHtml(cleanTxt); if(html.includes(escapedClean)) html = html.replace(escapedClean, `<span class="highlight-${item.type} border-b-2 border-indigo-500">${escapedClean}</span>`); } } });
+                document.getElementById('scriptView').innerHTML = html;
+            },
+
+            handleSelection() { if(!this.isEditMode) { const text = window.getSelection().toString().trim(); if(text.length > 0) { this.currentSelection = text; this.updatePasteButtons(); } } },
+            updatePasteButtons() { document.querySelectorAll('.btn-paste').forEach(btn => btn.disabled = this.isEditMode || !this.currentSelection); },
+            pasteToShot(idx) { if(this.currentSelection) { this.sequence[idx].data.script = this.currentSelection; this.currentSelection = ""; window.getSelection().removeAllRanges(); this.renderInputs(); this.renderScriptView(); this.updatePasteButtons(); } },
+
+            countWords(str) { return str ? str.trim().split(/\s+/).filter(w => w.length > 0).length : 0; },
+            updateScriptData(val) { this.scriptContent = val; this.updateCalculations(); this.renderLivePreview(); },
+            escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); },
+            parseInlineUpsot(text) { const m = text.match(/\[UPSOT=(\d+)\]/g); return m ? m.reduce((s, x) => s + parseInt(x.match(/\d+/)[0]), 0) : 0; },
+            cleanUpsotTags(text) { return text.replace(/\[UPSOT=\d+\]/g, ''); },
+
+            updateCalculations() {
+                let sTime = 0; let iTime = 0;
+                this.sequence.forEach(item => {
+                    if (item.type === 'interview') {
+                        item.data.segments.forEach(seg => iTime += Math.ceil(this.countWords(seg.text) / 3));
+                    } else {
+                        // Use consistent segmentation logic for sum
+                        const segments = this.getProcessedSegments(item);
+                        segments.forEach(seg => sTime += seg.dur);
+                    }
+                });
+                document.getElementById('scriptWordCount').innerText = this.countWords(this.scriptContent); document.getElementById('scriptTime').innerText = sTime; document.getElementById('intTime').innerText = iTime; document.getElementById('totalTime').innerText = sTime + iTime;
+            },
+
+            validate() {
+                const msg = document.getElementById('errorMsg'); const btnDoc = document.getElementById('btnDoc'); let missing = [];
+                if (!document.getElementById('studentName').value.trim()) missing.push("Name"); if (!document.getElementById('assignmentTitle').value.trim()) missing.push("Slug"); if (!this.scriptContent.trim()) missing.push("Script"); if (this.sequence.length === 0) missing.push("Blocks");
+                if (missing.length > 0) { msg.innerText = "Missing: " + missing.join(', '); msg.classList.remove('hidden'); btnDoc.classList.add('btn-disabled'); }
+                else { msg.classList.add('hidden'); btnDoc.classList.remove('btn-disabled'); }
+            },
+
+            reset() { if(confirm("Start new assignment?")) { this.sequence = []; this.scriptContent = ""; document.getElementById('studentName').value = ""; document.getElementById('assignmentTitle').value = ""; document.getElementById('scriptEdit').value = ""; document.getElementById('cueText').value = ""; this.renderBoard(); this.renderInputs(); this.validate(); } },
+
+            exportDoc() {
+                const cue = document.getElementById('cueText').value; const total = document.getElementById('totalTime').innerText; const slug = document.getElementById('assignmentTitle').value; const reporter = document.getElementById('studentName').value;
+                let rows = `<tr><td colspan="4" style="border:1px solid #000; padding:10px; font-weight:bold; background:#eee;">Cue</td></tr><tr><td colspan="4" style="border:1px solid #000; padding:10px;">“${cue}”</td></tr><tr style="background:#eee; font-weight:bold;"><td style="border:1px solid #000; padding:10px; width:25%">Visuals</td><td style="border:1px solid #000; padding:10px; width:35%">Audio: Sync</td><td style="border:1px solid #000; padding:10px; width:25%">Audio: NAT</td><td style="border:1px solid #000; padding:10px; width:15%">Dur</td></tr>`;
+                
+                this.sequence.forEach((item, idx) => {
+                    if (item.type === 'interview') {
+                        item.data.segments.forEach((seg, sIdx) => {
+                            const dur = Math.ceil(this.countWords(seg.text)/3);
+                            if (seg.type === 'mcu') {
+                                const nameInfo = item.data.name || item.data.title ? `<br><b>Lower-Third:</b> ${item.data.name}${item.data.name && item.data.title ? ', ' : ''}${item.data.title}` : '';
+                                rows += `<tr><td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>MCU</b>${nameInfo}</td><td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>INT:</b> “${seg.text}”</td><td style="border:1px solid #000; padding:10px; vertical-align:top;"></td><td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${dur.toString().padStart(2,'0')}</td></tr>`;
+                            } else {
+                                const typeObj = SHOT_TYPES.find(t=>t.id===seg.shotType) || { short: 'WS' };
+                                rows += `<tr><td style="border:1px solid #000; padding:10px; vertical-align:top; background:#f9fafb;"><b>${typeObj.short}</b><br>${seg.desc || ''}</td><td style="border:1px solid #000; padding:10px; vertical-align:top; background:#f9fafb;"><b>INT:</b> “${seg.text}”</td><td style="border:1px solid #000; padding:10px; vertical-align:top; background:#f9fafb; text-transform:uppercase; font-size:8px;">${seg.nat || ''}</td><td style="border:1px solid #000; padding:10px; vertical-align:top; background:#f9fafb;">0:${dur.toString().padStart(2,'0')}</td></tr>`;
+                            }
+                        });
+                    } else {
+                        const type = SHOT_TYPES.find(t => t.id === item.type);
+                        const isPTC = item.type === 'ptc';
+                        
+                        let visualContent = `<b>${type?.short || 'Shot'}</b>`;
+                        if (item.data.isOverlay) visualContent += ` <span style="color:blue; font-size:8px;">[OVERLAY]</span>`;
+                        if (item.data.isOverlay && item.data.overlayText) {
+                             const formattedOverlay = item.data.overlayText.replace(/\n/g, '<br>');
+                             visualContent += `<br><b>GFX:</b><br>${formattedOverlay}`;
+                        }
+
+                        visualContent += `<br>${item.data.desc || ""}`;
+                        if (item.type === 'library' && item.data.attribution) visualContent += `<br><b>GFX:</b> ${item.data.attribution}`;
+                        
+                        const segments = this.getProcessedSegments(item);
+
+                        segments.forEach((seg, i) => {
+                            const visualCell = (i === 0) 
+                                ? `<td rowspan="${segments.length}" style="border:1px solid #000; padding:10px; vertical-align:top;">${visualContent}</td>` 
+                                : '';
+                            
+                            // For DOC export, explicit rowspan is necessary. 
+                            // Note: We strip HTML tags from segments for the DOC variable content (except B/Strong) to ensure cleanliness
+                            const cleanText = seg.text.replace(/<[^>]*>/g, '').replace(/REPORTER:/, '<b>REPORTER:</b>');
+                            const cleanNat = seg.nat.replace(/<[^>]*>/g, '').replace(/NAT:/, '<b>NAT:</b>');
+
+                            rows += `<tr>${visualCell}<td style="border:1px solid #000; padding:10px; vertical-align:top;">${cleanText}</td><td style="border:1px solid #000; padding:10px; vertical-align:top; text-transform:uppercase; font-size:8px;">${cleanNat}</td><td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${seg.dur.toString().padStart(2,'0')}</td></tr>`;
+                        });
+                    }
+                });
+
+                rows += `<tr><td colspan="3" style="border:1px solid #000; padding:10px; font-weight:bold;">Runs (excl Cue)</td><td style="border:1px solid #000; padding:10px; font-weight:bold;">${total}s</td></tr>`;
+                const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Script</title></head><body style="font-family:Arial"><h1>${slug}</h1><p>Reporter: ${reporter}</p><table style="width:100%; border-collapse:collapse;">${rows}</table></body></html>`;
+                const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+                const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `Script_${reporter.replace(/\s+/g,'_')}.doc`; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            }
+        };
+
+        app.init();
+    </script>
+</body>
+</html>
