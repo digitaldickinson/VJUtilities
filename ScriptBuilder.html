@@ -69,7 +69,7 @@
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
             <h2 class="text-lg font-bold text-indigo-900 mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                Package Details
+                Details
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -240,7 +240,7 @@
                     <div class="font-bold text-indigo-600 text-lg">2</div>
                     <div>
                         <strong class="text-slate-800 block mb-1">Build Your Visuals</strong>
-                        Drag shot cards (Wide, Medium, etc.) from the top palette into the 7 available slots on the board. Remember, the seventh slot is for your playout shot- the final shot of your package.
+                        Drag shot cards (Wide, Medium, etc.) from the top palette into the 7 available slots on the board.
                     </div>
                 </div>
                 <div class="flex gap-4">
@@ -261,7 +261,7 @@
                     <div class="font-bold text-indigo-600 text-lg">5</div>
                     <div>
                         <strong class="text-slate-800 block mb-1">Export</strong>
-                        When finished, use the Export Script button at the  bottom to download a Word Doc (shooting script). You can see a live preview of this document in the right-hand column.
+                        When finished, use the button at the bottom to download a Word Doc (shooting script). You can see a live preview of this document in the right-hand column.
                     </div>
                 </div>
             </div>
@@ -307,6 +307,82 @@
                 this.renderBoard();
                 this.renderInputs();
                 this.validate();
+            },
+
+            // MOVED UP to ensure it is defined before usage
+            renderPreview() {
+                const rows = this.getScriptRows();
+                const title = document.getElementById('assignmentTitle').value || "Assignment Title";
+                const name = document.getElementById('studentName').value || "Student Name";
+                
+                const html = `
+                    <h1 style="font-size:24px; font-weight:bold; margin-bottom:10px;">${title}</h1>
+                    <p style="margin-bottom:20px;">Student: ${name}</p>
+                    <table style="width:100%; border-collapse:collapse; font-size:12px;">${rows}</table>
+                `;
+                const container = document.getElementById('livePreviewContainer');
+                if(container) container.innerHTML = html;
+            },
+
+            // MOVED UP to ensure it is defined before usage
+            getScriptRows() {
+                const cue = document.getElementById('cueText').value || "(No Cue)";
+                const intName = document.getElementById('intName').value || "(Name)";
+                const intTitle = document.getElementById('intTitle').value || "(Title)";
+                const intText = document.getElementById('intText').value || "(Interview Transcription)";
+                const total = document.getElementById('totalTime').innerText;
+
+                let rows = `
+                    <tr><td colspan="3" style="border:1px solid #000; padding:10px; font-weight:bold; background:#eee;">Cue</td></tr>
+                    <tr><td colspan="3" style="border:1px solid #000; padding:10px;">${cue}</td></tr>
+                    <tr style="background:#eee; font-weight:bold;">
+                        <td style="border:1px solid #000; padding:10px; width:30%">Shots</td>
+                        <td style="border:1px solid #000; padding:10px; width:50%">Script / Audio</td>
+                        <td style="border:1px solid #000; padding:10px; width:20%">Dur</td>
+                    </tr>
+                `;
+
+                for(let i=0; i<6; i++) {
+                    const slot = this.slots[i];
+                    const d = this.shotData[i];
+                    const dur = Math.ceil(this.countWords(d.script)/3);
+                    rows += `<tr>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${slot ? slot.label : 'Shot ' + (i+1)}</b><br>${d.desc}<br><br><i>Nat: ${d.nat}</i></td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d.script}</td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${dur.toString().padStart(2,'0')}</td>
+                    </tr>`;
+                }
+
+                rows += `<tr>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br>${intName}<br>${intTitle}</td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${intText}</td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(intText)/3).toString().padStart(2,'0')}</td>
+                </tr>`;
+
+                if(this.hasCutaway) {
+                    const cSlot = this.cutawaySlot;
+                    rows += `<tr>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${cSlot ? cSlot.label : 'Cutaway'}</b><br>${this.cutawayData.desc}<br><br><i>Nat: ${this.cutawayData.nat}</i></td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${this.cutawayData.script}</td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.cutawayData.script)/3).toString().padStart(2,'0')}</td>
+                    </tr>`;
+                    rows += `<tr>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br><i>(Cut back)</i></td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${this.intText2}</td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.intText2)/3).toString().padStart(2,'0')}</td>
+                    </tr>`;
+                }
+
+                const d7 = this.shotData[6];
+                rows += `<tr>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${this.slots[6] ? this.slots[6].label : 'Playout Shot'}</b><br>${d7.desc}<br><br><i>Nat: ${d7.nat}</i></td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d7.script}</td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(d7.script)/3).toString().padStart(2,'0')}</td>
+                </tr>`;
+
+                rows += `<tr><td colspan="2" style="border:1px solid #000; padding:10px; font-weight:bold;">Runs (excl Cue)</td><td style="border:1px solid #000; padding:10px; font-weight:bold;">${total}s</td></tr>`;
+                
+                return rows;
             },
 
             showHelp() { document.getElementById('helpModal').classList.remove('hidden'); },
@@ -390,7 +466,8 @@
                 let html = '';
 
                 // 1. MAIN INTERVIEW ROW
-                const intDur1 = Math.ceil(this.countWords(document.getElementById('intText')?.value || "") / 3);
+                const intWords1 = this.countWords(document.getElementById('intText')?.value || "");
+                const intDur1 = Math.ceil(intWords1 / 3);
                 const intNameVal = document.getElementById('intName')?.value || '';
                 const intTitleVal = document.getElementById('intTitle')?.value || '';
 
@@ -407,7 +484,7 @@
                     <div class="md:col-span-8 flex flex-col">
                         <div class="flex justify-between items-center mb-1">
                             <div class="text-emerald-800 font-bold uppercase text-xs">Soundbite ${this.hasCutaway ? '(Part 1)' : ''}</div>
-                            <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded">Est: <span id="intDurationDisplay">${intDur1}</span>s</div>
+                            <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded"><span id="intDurationDisplay">(${intWords1} words, ~${intDur1}s)</span></div>
                         </div>
                         <textarea id="intText" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none focus:border-emerald-400" placeholder="Transcription of interview." oninput="app.updateCalculations()">${document.getElementById('intText')?.value || ''}</textarea>
                     </div>
@@ -416,7 +493,8 @@
                 // 2. OPTIONAL SPLIT/BRIDGE
                 if (this.hasCutaway) {
                     const cSlot = this.cutawaySlot;
-                    const cDur = Math.ceil(this.countWords(this.cutawayData.script) / 3);
+                    const cWords = this.countWords(this.cutawayData.script);
+                    const cDur = Math.ceil(cWords / 3);
                     const options = SHOT_TYPES.map(t => `<option value="${t.id}" ${cSlot && cSlot.id === t.id ? 'selected' : ''}>${t.label}</option>`).join('');
                     const colorClass = cSlot ? cSlot.color.split(' ')[1] : 'text-slate-500'; 
                     const bgClass = cSlot ? cSlot.color.replace('text-', 'bg-').split(' ')[0] : 'bg-white';
@@ -450,7 +528,7 @@
                         <div class="md:col-span-8 flex flex-col">
                             <div class="flex justify-between items-center mb-1">
                                 <div class="text-emerald-800 font-bold uppercase text-xs">Sync Sound (Bridge)</div>
-                                <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded">Est: <span id="dur-cutaway">${cDur}</span>s</div>
+                                <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded"><span id="dur-cutaway">(${cWords} words, ~${cDur}s)</span></div>
                             </div>
                             <textarea oninput="app.updateCutawayData('script', this.value)" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none sync-sound-box" placeholder="&quot;Subject continues speaking over cutaway...&quot;">${this.cutawayData.script}</textarea>
                         </div>
@@ -466,7 +544,7 @@
                         <div class="md:col-span-8 flex flex-col">
                             <div class="flex justify-between items-center mb-1">
                                 <div class="text-emerald-800 font-bold uppercase text-xs">Soundbite (Part 2)</div>
-                                <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded">Est: <span id="intDurationDisplay2">${Math.ceil(this.countWords(this.intText2)/3)}</span>s</div>
+                                <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded"><span id="intDurationDisplay2">(${this.countWords(this.intText2)} words, ~${Math.ceil(this.countWords(this.intText2)/3)}s)</span></div>
                             </div>
                             <textarea id="intText2" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none focus:border-emerald-400" placeholder="Final part of transcription..." oninput="app.updateIntText2(this.value)">${this.intText2}</textarea>
                         </div>
@@ -478,20 +556,21 @@
                 const pIdx = 6;
                 let playoutLeft = '';
                 let playoutRight = '';
-                const pDur = Math.ceil(this.countWords(this.shotData[6].script) / 3);
+                const pWords = this.countWords(this.shotData[6].script);
+                const pDur = Math.ceil(pWords / 3);
 
                 if (!pSlot) {
                     playoutLeft = `
                         <div class="h-32 rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50/50 flex flex-col items-center justify-center text-emerald-400/50"
                              ondragover="app.allowDrop(event)" ondragleave="app.dragLeave(event)" ondrop="app.drop(event, ${pIdx})">
                             <span class="text-xs font-bold uppercase">Playout Shot</span>
-                            
+                            <span class="text-[10px]">Drop Shot Here</span>
                         </div>`;
                     playoutRight = `
                          <div class="flex justify-between items-center mb-1 opacity-50">
                             <div class="text-emerald-800 font-bold uppercase text-xs">Handover / Conclusion</div>
                         </div>
-                        <textarea disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg p-3 text-slate-400 outline-none h-32 resize-none italic" placeholder="Add a final shot for your package and any interview content that we hear over playout shot..."></textarea>`;
+                        <textarea disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg p-3 text-slate-400 outline-none h-32 resize-none italic" placeholder="Add a playout shot to finish the package..."></textarea>`;
                 } else {
                     const label = `<span class="${pSlot.color.split(' ')[1]}">Cut-Away: ${pSlot.label}</span>`;
                     playoutLeft = `
@@ -507,7 +586,7 @@
                     playoutRight = `
                         <div class="flex justify-between items-center mb-1">
                             <div class="text-emerald-800 font-bold uppercase text-xs">Handover / Conclusion</div>
-                            <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded">Est: <span id="dur-6">${pDur}</span>s</div>
+                            <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded"><span id="dur-6">(${pWords} words, ~${pDur}s)</span></div>
                         </div>
                         <textarea oninput="app.updateData(${pIdx}, 'script', this.value)" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none sync-sound-box" placeholder="Final conclusion or handover details...">${this.shotData[pIdx].script}</textarea>`;
                 }
@@ -521,7 +600,8 @@
 
             getCardHtml(slot, idx) {
                 if (!slot) return `<div class="bg-slate-50 border border-slate-200 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-slate-400 h-64"><div class="font-bold text-sm uppercase">Shot #${idx + 1} Empty</div><div class="text-xs">Drag a shot above to edit</div></div>`;
-                const dur = Math.ceil(this.countWords(this.shotData[idx].script) / 3);
+                const words = this.countWords(this.shotData[idx].script);
+                const dur = Math.ceil(words / 3);
                 const btnDisabled = this.isEditMode || !this.currentSelection;
                 const label = `Shot ${idx+1}: <span class="${slot.color.split(' ')[1]}">${slot.label}</span>`;
                 return `
@@ -541,7 +621,7 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                                     </button>
                                     <textarea oninput="app.updateData(${idx}, 'script', this.value)" id="script-${idx}" class="w-full text-xs p-2 border border-slate-100 rounded outline-none resize-none h-full bg-indigo-50/20 text-indigo-900 font-serif italic" placeholder="Paste script here...">${this.shotData[idx].script}</textarea>
-                                    <div class="absolute bottom-1 right-2 text-[10px] text-indigo-400 font-bold bg-white/80 px-1 rounded"><span id="dur-${idx}">${dur}</span>s</div>
+                                    <div class="absolute bottom-1 right-2 text-[10px] text-indigo-400 font-bold bg-white/80 px-1 rounded"><span id="dur-${idx}">(${words} words, ~${dur}s)</span></div>
                                 </div>
                             </div>
                         </div>
@@ -642,42 +722,55 @@
                 const sWords = this.countWords(this.scriptContent);
                 const sTime = Math.ceil(sWords / 3);
                 
-                // Update individual shot durations
+                // Update individual shot durations (0-6)
                 for(let i=0; i<7; i++) {
-                     const dur = Math.ceil(this.countWords(this.shotData[i].script) / 3);
+                     const words = this.countWords(this.shotData[i].script);
+                     const dur = Math.ceil(words / 3);
                      const el = document.getElementById(`dur-${i}`);
-                     if(el) el.innerText = dur;
+                     if(el) el.innerText = `(${words} words, ~${dur}s)`;
                 }
 
                 // Update cutaway duration if exists
                 if(this.hasCutaway) {
-                    const cDur = Math.ceil(this.countWords(this.cutawayData.script) / 3);
+                    const words = this.countWords(this.cutawayData.script);
+                    const cDur = Math.ceil(words / 3);
                     const el = document.getElementById('dur-cutaway');
-                    if(el) el.innerText = cDur;
+                    if(el) el.innerText = `(${words} words, ~${cDur}s)`;
                 }
 
-                const intWords1 = this.countWords(document.getElementById('intText')?.value || "");
-                const playoutSyncWords = this.countWords(this.shotData[6].script);
+                const intText1Val = document.getElementById('intText')?.value || "";
+                const intWords1 = this.countWords(intText1Val);
+                
+                const playoutSyncWords = this.countWords(this.shotData[6].script); 
+                
                 let cutawayBridgeWords = 0;
                 let intWords2 = 0;
+                
                 if(this.hasCutaway) {
                     cutawayBridgeWords = this.countWords(this.cutawayData.script);
                     intWords2 = this.countWords(this.intText2);
                     if(document.getElementById('intDurationDisplay2')) {
-                        document.getElementById('intDurationDisplay2').innerText = Math.ceil(intWords2 / 3);
+                        document.getElementById('intDurationDisplay2').innerText = `(${intWords2} words, ~${Math.ceil(intWords2 / 3)}s)`;
                     }
                 }
+                
                 const totalIntWords = intWords1 + cutawayBridgeWords + intWords2 + playoutSyncWords;
                 const iTime = Math.ceil(totalIntWords / 3);
+                
                 document.getElementById('scriptWordCount').innerText = sWords;
                 document.getElementById('scriptTime').innerText = sTime;
+                
                 if(document.getElementById('intDurationDisplay')) {
-                   document.getElementById('intDurationDisplay').innerText = Math.ceil(intWords1 / 3);
+                   document.getElementById('intDurationDisplay').innerText = `(${intWords1} words, ~${Math.ceil(intWords1 / 3)}s)`;
                 }
+                
                 document.getElementById('intTime').innerText = iTime; 
                 document.getElementById('totalTime').innerText = sTime + iTime;
+                
                 this.validate();
-                this.renderPreview();
+                // RenderPreview is already called in validate(), so we don't need it here again to avoid potential race/double calls, 
+                // but keeping it harmless or removing it if it caused the issue. 
+                // Given the error was "is not a function", the definition order was the key.
             },
 
             validate() {
@@ -733,79 +826,6 @@
                     this.renderBoard();
                     this.updateCalculations();
                 }
-            },
-
-            getScriptRows() {
-                const cue = document.getElementById('cueText').value || "(No Cue)";
-                const intName = document.getElementById('intName').value || "(Name)";
-                const intTitle = document.getElementById('intTitle').value || "(Title)";
-                const intText = document.getElementById('intText').value || "(Interview Transcription)";
-                const total = document.getElementById('totalTime').innerText;
-
-                let rows = `
-                    <tr><td colspan="3" style="border:1px solid #000; padding:10px; font-weight:bold; background:#eee;">Cue</td></tr>
-                    <tr><td colspan="3" style="border:1px solid #000; padding:10px;">${cue}</td></tr>
-                    <tr style="background:#eee; font-weight:bold;">
-                        <td style="border:1px solid #000; padding:10px; width:30%">Shots</td>
-                        <td style="border:1px solid #000; padding:10px; width:50%">Script / Audio</td>
-                        <td style="border:1px solid #000; padding:10px; width:20%">Dur</td>
-                    </tr>
-                `;
-
-                for(let i=0; i<6; i++) {
-                    const slot = this.slots[i];
-                    const d = this.shotData[i];
-                    const dur = Math.ceil(this.countWords(d.script)/3);
-                    rows += `<tr>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${slot ? slot.label : 'Shot ' + (i+1)}</b><br>${d.desc}<br><br><i>Nat: ${d.nat}</i></td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d.script}</td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${dur.toString().padStart(2,'0')}</td>
-                    </tr>`;
-                }
-
-                rows += `<tr>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br>${intName}<br>${intTitle}</td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${intText}</td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(intText)/3).toString().padStart(2,'0')}</td>
-                </tr>`;
-
-                if(this.hasCutaway) {
-                    const cSlot = this.cutawaySlot;
-                    rows += `<tr>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${cSlot ? cSlot.label : 'Cutaway'}</b><br>${this.cutawayData.desc}<br><br><i>Nat: ${this.cutawayData.nat}</i></td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${this.cutawayData.script}</td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.cutawayData.script)/3).toString().padStart(2,'0')}</td>
-                    </tr>`;
-                    rows += `<tr>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br><i>(Cut back)</i></td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${this.intText2}</td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.intText2)/3).toString().padStart(2,'0')}</td>
-                    </tr>`;
-                }
-
-                const d7 = this.shotData[6];
-                rows += `<tr>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${this.slots[6] ? this.slots[6].label : 'Playout Shot'}</b><br>${d7.desc}<br><br><i>Nat: ${d7.nat}</i></td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d7.script}</td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(d7.script)/3).toString().padStart(2,'0')}</td>
-                </tr>`;
-
-                rows += `<tr><td colspan="2" style="border:1px solid #000; padding:10px; font-weight:bold;">Runs (excl Cue)</td><td style="border:1px solid #000; padding:10px; font-weight:bold;">${total}s</td></tr>`;
-                
-                return rows;
-            },
-
-            renderPreview() {
-                const rows = this.getScriptRows();
-                const title = document.getElementById('assignmentTitle').value || "Assignment Title";
-                const name = document.getElementById('studentName').value || "Student Name";
-                
-                const html = `
-                    <h1 style="font-size:24px; font-weight:bold; margin-bottom:10px;">${title}</h1>
-                    <p style="margin-bottom:20px;">Student: ${name}</p>
-                    <table style="width:100%; border-collapse:collapse; font-size:12px;">${rows}</table>
-                `;
-                document.getElementById('livePreviewContainer').innerHTML = html;
             },
 
             exportDoc() {
