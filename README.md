@@ -22,5 +22,5 @@ A more advanced version of scriptbuilder, this is still a stand alone webpage th
 - Most shot blocks have the opportunity to specify overlay graphics if required. 
 - Shot blocks can be set to FULL NAT which denotes only NAT sound. No script.
 - Temporary lifts in NAT sound (NAT POP) can be shown in script by adding the tag [NATPOP=X:TEXT] where x is the number of seconds you want of nat sound and TEXT is a brief line to point to a specific sound
-- Temporary lifts in NAT sound focus on dialouge can be noted with [SOT=X:TEXT]
-- Overlay GFX can be defined globally by using the Overlay Graphics check box. But you can time them specifically into a script by using the [GFX:TEXT] tag where the text is the text to show on screen. 
+- Temporary lifts in NAT sound focus on dialouge can be noted with [SOT=X:TEXT] where x is the number of seconds you want of nat sound and TEXT is the specific dialogue to include
+- Overlay GFX can be defined globally by using the Overlay Graphics check box. But you can time them specifically into a script by using the [GFX:TEXT] tag where the text is the text content to show on screen. 
