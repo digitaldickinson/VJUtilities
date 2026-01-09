@@ -83,8 +83,6 @@
             </div>
         </div>
 
-        <!-- Moved Duration Bar from here -->
-
         <div class="bg-slate-800 text-white rounded-2xl p-6 shadow-2xl relative overflow-hidden">
             <div class="absolute top-0 right-0 p-32 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
             
@@ -108,7 +106,6 @@
 
         <div class="grid lg:grid-cols-12 gap-6">
             
-            <!-- COLUMN 1: REPORTER SCRIPT (2/12) -->
             <div class="lg:col-span-2 bg-white h-fit rounded-2xl shadow-lg border border-slate-100 sticky top-24">
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                     <h3 class="font-bold text-slate-800 flex items-center gap-2 text-sm">
@@ -135,10 +132,8 @@
                 </div>
             </div>
 
-            <!-- COLUMN 2: BLOCKS (6/12) -->
             <div class="lg:col-span-6 bg-indigo-50 p-6 rounded-2xl shadow-inner border border-indigo-100 flex flex-col gap-6 h-fit">
                 
-                <!-- MOVED HERE: Duration Header -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                     <div class="flex items-center gap-3">
                         <div class="bg-slate-900 p-2 rounded-lg text-white">
@@ -191,7 +186,6 @@
 
             </div>
 
-            <!-- COLUMN 3: PREVIEW (4/12) -->
             <div class="lg:col-span-4 bg-slate-200 p-4 rounded-2xl shadow-inner border border-slate-300 sticky top-24 h-[calc(100vh-8rem)] overflow-hidden flex flex-col">
                 <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
@@ -313,7 +307,6 @@
                 });
             },
 
-            // MOVED UP to ensure it is defined before usage
             renderPreview() {
                 const rows = this.getScriptRows();
                 const title = document.getElementById('assignmentTitle').value || "Assignment Title";
@@ -328,7 +321,6 @@
                 if(container) container.innerHTML = html;
             },
 
-            // MOVED UP to ensure it is defined before usage
             getScriptRows() {
                 const cue = document.getElementById('cueText').value || "(No Cue)";
                 const intName = document.getElementById('intName').value || "(Name)";
@@ -346,41 +338,57 @@
                     </tr>
                 `;
 
+                // SHOTS 1-6 (Reporter)
                 for(let i=0; i<6; i++) {
                     const slot = this.slots[i];
                     const d = this.shotData[i];
                     const dur = Math.ceil(this.countWords(d.script)/3);
+                    const scriptDisplay = d.script ? `<b>Reporter:</b> ${d.script}` : '';
+
                     rows += `<tr>
                         <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${slot ? slot.label : 'Shot ' + (i+1)}</b><br>${d.desc}<br><br><i>Nat: ${d.nat}</i></td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d.script}</td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${scriptDisplay}</td>
                         <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${dur.toString().padStart(2,'0')}</td>
                     </tr>`;
                 }
 
+                // MAIN INTERVIEW (Int)
+                const intTextDisplay = intText && intText !== "(Interview Transcription)" ? `<b>Int:</b> ${intText}` : intText;
+
                 rows += `<tr>
                     <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br>${intName}<br>${intTitle}</td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${intText}</td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${intTextDisplay}</td>
                     <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(intText)/3).toString().padStart(2,'0')}</td>
                 </tr>`;
 
+                // CUTAWAY / BRIDGE (Int)
                 if(this.hasCutaway) {
                     const cSlot = this.cutawaySlot;
+                    const cutawayDisplay = this.cutawayData.script ? `<b>Int:</b> ${this.cutawayData.script}` : '';
+                    
                     rows += `<tr>
                         <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${cSlot ? cSlot.label : 'Cutaway'}</b><br>${this.cutawayData.desc}<br><br><i>Nat: ${this.cutawayData.nat}</i></td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${this.cutawayData.script}</td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${cutawayDisplay}</td>
                         <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.cutawayData.script)/3).toString().padStart(2,'0')}</td>
                     </tr>`;
+
+                    // PART 2 INTERVIEW (Int)
+                    const intText2Display = this.intText2 ? `<b>Int:</b> ${this.intText2}` : '';
+                    
                     rows += `<tr>
                         <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br><i>(Cut back)</i></td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${this.intText2}</td>
+                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${intText2Display}</td>
                         <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.intText2)/3).toString().padStart(2,'0')}</td>
                     </tr>`;
                 }
 
+                // SHOT 7 / PLAYOUT (Reporter)
                 const d7 = this.shotData[6];
+                const d7Display = d7.script ? `<b>Reporter:</b> ${d7.script}` : '';
+
                 rows += `<tr>
                     <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${this.slots[6] ? this.slots[6].label : 'Playout Shot'}</b><br>${d7.desc}<br><br><i>Nat: ${d7.nat}</i></td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d7.script}</td>
+                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d7Display}</td>
                     <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(d7.script)/3).toString().padStart(2,'0')}</td>
                 </tr>`;
 
@@ -537,7 +545,6 @@
                             <textarea oninput="app.updateCutawayData('script', this.value)" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none sync-sound-box" placeholder="&quot;Continue transcription of interviewee speaking over cutaway...&quot;">${this.cutawayData.script}</textarea>
                         </div>
                         
-                        <!-- REFINED SECOND MCU BLOCK - Aligned & Simplified -->
                         <div class="md:col-span-4 flex flex-col gap-2">
                             <div class="bg-white border border-emerald-200 rounded-lg p-3 text-emerald-600 flex flex-col items-center justify-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -859,4 +866,4 @@
         app.init();
     </script>
 </body>
-</html>ss
+</html>
