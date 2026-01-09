@@ -89,7 +89,7 @@
             <div class="relative z-10 mb-8">
                 <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>
-                    1. Drag shots from here...
+                    1. Click or drag shots from here...
                 </h2>
                 <div id="palette" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 p-4 bg-slate-700/50 rounded-xl border border-slate-600">
                     </div>
@@ -98,7 +98,7 @@
             <div class="relative z-10">
                 <h2 class="text-lg font-bold flex items-center gap-2 mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="19" cy="5" r="1"/><circle cx="5" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="19" cy="19" r="1"/><circle cx="5" cy="19" r="1"/></svg>
-                    2. ...drop them here so they match your sequence, including the end shot (7 Shots)
+                    2. ...to fill the sequence (7 Shots)
                 </h2>
                 <div id="board" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3"></div>
             </div>
@@ -202,7 +202,12 @@
             <div id="errorMsg" class="hidden text-center text-red-600 text-sm font-bold bg-red-50 border border-red-200 px-6 py-3 rounded-lg shadow-sm animate-pulse"></div>
             
             <div class="flex gap-4">
+                <button id="btnCopy" onclick="app.copyToClipboard()" class="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-900/20 px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    Copy to Clipboard
+                </button>
                 <button id="btnDoc" onclick="app.exportDoc()" class="btn-disabled bg-green-700 hover:bg-green-800 text-white shadow-lg shadow-green-900/20 px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
                     Export Script (.doc)
                 </button>
             </div>
@@ -233,7 +238,7 @@
                     <div class="font-bold text-indigo-600 text-lg">2</div>
                     <div>
                         <strong class="text-slate-800 block mb-1">Build Your Visuals</strong>
-                        Drag shot cards (Wide, Medium, etc.) from the top palette into the 7 available slots on the board.
+                        Click or drag shot cards (Wide, Medium, etc.) from the top palette to fill the 7 available slots on the board.
                     </div>
                 </div>
                 <div class="flex gap-4">
@@ -254,7 +259,7 @@
                     <div class="font-bold text-indigo-600 text-lg">5</div>
                     <div>
                         <strong class="text-slate-800 block mb-1">Export</strong>
-                        When finished, use the button at the bottom to download a Word Doc (shooting script). You can see a live preview of this document in the right-hand column.
+                        When finished, use the button at the bottom to download a Word Doc (shooting script) or copy the script to your clipboard.
                     </div>
                 </div>
             </div>
@@ -402,13 +407,24 @@
 
             renderPalette() {
                 document.getElementById('palette').innerHTML = SHOT_TYPES.map(type => `
-                    <div class="drag-source flex flex-col items-center justify-center p-3 rounded-xl border-2 shadow-sm ${type.color} h-32 w-full select-none"
-                         draggable="true" ondragstart="app.dragStart(event, '${type.id}')">
+                    <div class="drag-source flex flex-col items-center justify-center p-3 rounded-xl border-2 shadow-sm ${type.color} h-32 w-full select-none hover:brightness-95 hover:scale-105 active:scale-95 cursor-pointer"
+                         draggable="true" ondragstart="app.dragStart(event, '${type.id}')" onclick="app.clickToAdd('${type.id}')" title="Click to add to first empty slot">
                         <div class="mb-2">${ICONS[type.id]}</div>
                         <div class="font-bold text-sm text-center">${type.label}</div>
                         <div class="text-[10px] mt-1 opacity-75 text-center">${type.desc}</div>
                     </div>
                 `).join('');
+            },
+            
+            clickToAdd(id) {
+                const type = SHOT_TYPES.find(t => t.id === id);
+                // Find first empty slot among the 7
+                const emptyIdx = this.slots.findIndex(s => s === null);
+                
+                if (emptyIdx !== -1 && emptyIdx < 7) {
+                    this.slots[emptyIdx] = type;
+                    this.renderBoard();
+                }
             },
 
             renderBoard() {
@@ -845,6 +861,39 @@
                     this.renderBoard();
                     this.updateCalculations();
                 }
+            },
+
+            copyToClipboard() {
+                const rows = this.getScriptRows();
+                const title = document.getElementById('assignmentTitle').value || "Assignment Title";
+                const name = document.getElementById('studentName').value || "Student Name";
+                
+                // Create a temporary hidden div to hold the formatting
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = `<h1 style="font-size:18pt">${title}</h1><p>Student: ${name}</p><table style="width:100%; border-collapse:collapse; font-size:12px;">${rows}</table>`;
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                document.body.appendChild(tempDiv);
+
+                // Select it
+                const range = document.createRange();
+                range.selectNode(tempDiv);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+
+                try {
+                    document.execCommand('copy');
+                    const btn = document.getElementById('btnCopy');
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '✅ Copied!';
+                    setTimeout(() => btn.innerHTML = originalText, 2000);
+                } catch (err) {
+                    console.error('Failed to copy', err);
+                    alert('Failed to copy to clipboard');
+                }
+
+                document.body.removeChild(tempDiv);
+                window.getSelection().removeAllRanges();
             },
 
             exportDoc() {
