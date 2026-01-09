@@ -11,8 +11,10 @@ Please feel free to use them as you wish. However, I'd really appreciate it if y
 A stand alone webpage that allows a student to visually build formatted script from blocks of content. This was developed for a first-year module, Media Making for Journalists, where the assessment required them to build a simple package to a preset template (hence the basic structure). It works out basic timings and forces the student to include shot descriptions, nat sound information and lower-third information on interviews. It also allows for a basic cutaway in an the interview. 
 - Works as a standalone HMTL file (but requires connection to access scripts)
 - Student can drag-and-drop blocks for WS, MS, CU, an UNUSUAL ANGLE, Library footage or Full-screen graphic.
+  - Click to add shots functionality added to make it a bit more mobile friendly
 - Shot blocks require a shot description and detail of NAT sound before users can export script.
 - Shows a live preview of script as student makes changes
+- Users can copy a version of the script to clipboard.
 - Exports a word document with a script formatted for assessment submission
 
 ## Visualscript.html ## 
