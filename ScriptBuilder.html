@@ -320,7 +320,7 @@
                 const html = `
                     <h1 style="font-size:24px; font-weight:bold; margin-bottom:10px;">${title}</h1>
                     <p style="margin-bottom:20px;">Student: ${name}</p>
-                    <table style="width:100%; border-collapse:collapse; font-size:12px;">${rows}</table>
+                    <table width="100%" border="1" style="width:100%; border-collapse:collapse; font-size:12px;">${rows}</table>
                 `;
                 const container = document.getElementById('livePreviewContainer');
                 if(container) container.innerHTML = html;
@@ -337,9 +337,9 @@
                     <tr><td colspan="3" style="border:1px solid #000; padding:10px; font-weight:bold; background:#eee;">Cue</td></tr>
                     <tr><td colspan="3" style="border:1px solid #000; padding:10px;">${cue}</td></tr>
                     <tr style="background:#eee; font-weight:bold;">
-                        <td style="border:1px solid #000; padding:10px; width:30%">Shots</td>
-                        <td style="border:1px solid #000; padding:10px; width:50%">Script / Audio</td>
-                        <td style="border:1px solid #000; padding:10px; width:20%">Dur</td>
+                        <td width="30%" style="border:1px solid #000; padding:10px; width:30%">Shots</td>
+                        <td width="50%" style="border:1px solid #000; padding:10px; width:50%">Script / Audio</td>
+                        <td width="20%" style="border:1px solid #000; padding:10px; width:20%">Dur</td>
                     </tr>
                 `;
 
@@ -351,9 +351,9 @@
                     const scriptDisplay = d.script ? `<b>Reporter:</b> ${d.script}` : '';
 
                     rows += `<tr>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${slot ? slot.label : 'Shot ' + (i+1)}</b><br>${d.desc}<br><br><i>Nat: ${d.nat}</i></td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${scriptDisplay}</td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${dur.toString().padStart(2,'0')}</td>
+                        <td width="30%" style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${slot ? slot.label : 'Shot ' + (i+1)}</b><br>${d.desc}<br><br><i>Nat: ${d.nat}</i></td>
+                        <td width="50%" style="border:1px solid #000; padding:10px; vertical-align:top;">${scriptDisplay}</td>
+                        <td width="20%" style="border:1px solid #000; padding:10px; vertical-align:top;">0:${dur.toString().padStart(2,'0')}</td>
                     </tr>`;
                 }
 
@@ -361,9 +361,9 @@
                 const intTextDisplay = intText && intText !== "(Interview Transcription)" ? `<b>Int:</b> ${intText}` : intText;
 
                 rows += `<tr>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br>${intName}<br>${intTitle}</td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${intTextDisplay}</td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(intText)/3).toString().padStart(2,'0')}</td>
+                    <td width="30%" style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br>${intName}<br>${intTitle}</td>
+                    <td width="50%" style="border:1px solid #000; padding:10px; vertical-align:top;">${intTextDisplay}</td>
+                    <td width="20%" style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(intText)/3).toString().padStart(2,'0')}</td>
                 </tr>`;
 
                 // CUTAWAY / BRIDGE (Int)
@@ -372,29 +372,29 @@
                     const cutawayDisplay = this.cutawayData.script ? `<b>Int:</b> ${this.cutawayData.script}` : '';
                     
                     rows += `<tr>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${cSlot ? cSlot.label : 'Cutaway'}</b><br>${this.cutawayData.desc}<br><br><i>Nat: ${this.cutawayData.nat}</i></td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${cutawayDisplay}</td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.cutawayData.script)/3).toString().padStart(2,'0')}</td>
+                        <td width="30%" style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${cSlot ? cSlot.label : 'Cutaway'}</b><br>${this.cutawayData.desc}<br><br><i>Nat: ${this.cutawayData.nat}</i></td>
+                        <td width="50%" style="border:1px solid #000; padding:10px; vertical-align:top;">${cutawayDisplay}</td>
+                        <td width="20%" style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.cutawayData.script)/3).toString().padStart(2,'0')}</td>
                     </tr>`;
 
                     // PART 2 INTERVIEW (Int)
                     const intText2Display = this.intText2 ? `<b>Int:</b> ${this.intText2}` : '';
                     
                     rows += `<tr>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br><i>(Cut back)</i></td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">${intText2Display}</td>
-                        <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.intText2)/3).toString().padStart(2,'0')}</td>
+                        <td width="30%" style="border:1px solid #000; padding:10px; vertical-align:top;"><b>Interview (MCU)</b><br><i>(Cut back)</i></td>
+                        <td width="50%" style="border:1px solid #000; padding:10px; vertical-align:top;">${intText2Display}</td>
+                        <td width="20%" style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(this.intText2)/3).toString().padStart(2,'0')}</td>
                     </tr>`;
                 }
 
-                // SHOT 7 / PLAYOUT (Reporter)
+                // SHOT 7 / PLAYOUT (Int - Updated per user request)
                 const d7 = this.shotData[6];
-                const d7Display = d7.script ? `<b>Reporter:</b> ${d7.script}` : '';
+                const d7Display = d7.script ? `<b>Int:</b> ${d7.script}` : '';
 
                 rows += `<tr>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${this.slots[6] ? this.slots[6].label : 'Playout Shot'}</b><br>${d7.desc}<br><br><i>Nat: ${d7.nat}</i></td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">${d7Display}</td>
-                    <td style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(d7.script)/3).toString().padStart(2,'0')}</td>
+                    <td width="30%" style="border:1px solid #000; padding:10px; vertical-align:top;"><b>${this.slots[6] ? this.slots[6].label : 'Playout Shot'}</b><br>${d7.desc}<br><br><i>Nat: ${d7.nat}</i></td>
+                    <td width="50%" style="border:1px solid #000; padding:10px; vertical-align:top;">${d7Display}</td>
+                    <td width="20%" style="border:1px solid #000; padding:10px; vertical-align:top;">0:${Math.ceil(this.countWords(d7.script)/3).toString().padStart(2,'0')}</td>
                 </tr>`;
 
                 rows += `<tr><td colspan="2" style="border:1px solid #000; padding:10px; font-weight:bold;">Runs (excl Cue)</td><td style="border:1px solid #000; padding:10px; font-weight:bold;">${total}s</td></tr>`;
@@ -595,7 +595,7 @@
                         </div>`;
                     playoutRight = `
                          <div class="flex justify-between items-center mb-1 opacity-50">
-                            <div class="text-emerald-800 font-bold uppercase text-xs">Handover / Conclusion</div>
+                            <div class="text-emerald-800 font-bold uppercase text-xs">Interview / Playout Audio</div>
                         </div>
                         <textarea disabled class="w-full bg-slate-100 border border-slate-200 rounded-lg p-3 text-slate-400 outline-none h-32 resize-none italic" placeholder="Add a playout shot to finish the package and any final transcription of interview ..."></textarea>`;
                 } else {
@@ -612,10 +612,10 @@
                         </div>`;
                     playoutRight = `
                         <div class="flex justify-between items-center mb-1">
-                            <div class="text-emerald-800 font-bold uppercase text-xs">Handover / Conclusion</div>
+                            <div class="text-emerald-800 font-bold uppercase text-xs">Interview / Playout Audio</div>
                             <div class="text-[10px] font-bold text-emerald-600 bg-white/50 px-2 py-0.5 rounded"><span id="dur-6">(${pWords} words, ~${pDur}s)</span></div>
                         </div>
-                        <textarea oninput="app.updateData(${pIdx}, 'script', this.value)" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none sync-sound-box" placeholder="Final conclusion or handover details...">${this.shotData[pIdx].script}</textarea>`;
+                        <textarea oninput="app.updateData(${pIdx}, 'script', this.value)" class="w-full bg-white border border-emerald-200 rounded-lg p-3 text-slate-700 outline-none h-32 resize-none sync-sound-box" placeholder="Continuation of interview audio...">${this.shotData[pIdx].script}</textarea>`;
                 }
 
                 html += `<div class="md:col-span-4">${playoutLeft}</div><div class="md:col-span-8 flex flex-col">${playoutRight}</div>`;
@@ -870,7 +870,13 @@
                 
                 // Create a temporary hidden div to hold the formatting
                 const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = `<h1 style="font-size:18pt">${title}</h1><p>Student: ${name}</p><table style="width:100%; border-collapse:collapse; font-size:12px;">${rows}</table>`;
+                // FORCE WIDTH for clipboard copy
+                tempDiv.style.width = '700px'; 
+                tempDiv.style.maxWidth = '100%';
+                tempDiv.style.backgroundColor = 'white';
+
+                tempDiv.innerHTML = `<h1 style="font-family:Arial; font-size:18pt">${title}</h1><p style="font-family:Arial; font-size:11pt">Student: ${name}</p><table width="100%" border="1" style="width:100%; border-collapse:collapse; font-size:11pt; font-family:Arial; line-height:1.5">${rows}</table>`;
+                
                 tempDiv.style.position = 'absolute';
                 tempDiv.style.left = '-9999px';
                 document.body.appendChild(tempDiv);
@@ -901,7 +907,7 @@
                 const title = document.getElementById('assignmentTitle').value || "Assignment Title";
                 const name = document.getElementById('studentName').value || "Student Name";
                 
-                const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Script</title></head><body style="font-family:Arial"><h1>${title}</h1><p>Student: ${name}</p><table style="width:100%; border-collapse:collapse;">${rows}</table></body></html>`;
+                const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Script</title></head><body style="font-family:Arial"><h1>${title}</h1><p>Student: ${name}</p><table width="100%" border="1" style="width:100%; border-collapse:collapse;">${rows}</table></body></html>`;
                 const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
@@ -915,4 +921,4 @@
         app.init();
     </script>
 </body>
-</html>m
+</html>
