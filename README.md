@@ -18,6 +18,8 @@ A stand alone webpage that allows a student to visually build formatted script f
 - Exports a word document with a script formatted for assessment submission
 
 ## Visualscript.html ## 
+<img width="600" height="504" alt="Screenshot of visualscript" src="https://github.com/user-attachments/assets/e94ba425-3345-47cb-9849-5d7fe14534e0" />
+
 A more advanced version of scriptbuilder, this is still a stand alone webpage that allows a student to visually build a formatted script from blocks of content. There is no limit to the number of shots. 
 - Works as a standalone HMTL file (but requires connection to access scripts)
 - As well as the standard blocks, there is now an interview block which included the ability to add multiple cutaways. 
