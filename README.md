@@ -8,6 +8,8 @@ All of these were developed as standalone html pages so that they could be added
 Please feel free to use them as you wish. However, I'd really appreciate it if you let me know if you did. I'd be interested in feedback! Let me know at a.dickinson@mmu.ac.uk
 
 ## ScriptBuilder.html ## 
+<img width="799" height="491" alt="image" src="https://github.com/user-attachments/assets/5eba7084-06fa-44f5-8632-e6bd6d448c28" />
+
 A stand alone webpage that allows a student to visually build formatted script from blocks of content. This was developed for a first-year module, Media Making for Journalists, where the assessment required them to build a simple package to a preset template (hence the basic structure). It works out basic timings and forces the student to include shot descriptions, nat sound information and lower-third information on interviews. It also allows for a basic cutaway in an the interview. 
 - Works as a standalone HMTL file (but requires connection to access scripts)
 - Student can drag-and-drop blocks for WS, MS, CU, an UNUSUAL ANGLE, Library footage or Full-screen graphic.
