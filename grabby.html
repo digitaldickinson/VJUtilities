@@ -223,7 +223,7 @@
 <body>
   <header>
     <div class="logo" aria-hidden="true">
-      <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Red crab logo">
+      <svg width="44" height="44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Red crab logo">
         <rect width="100" height="100" rx="20" fill="#F8FAFC" />
         <path d="M25 60C25 48.9543 36.1929 40 50 40C63.8071 40 75 48.9543 75 60C75 71.0457 63.8071 80 50 80C36.1929 80 25 71.0457 25 60Z" fill="#EF4444"/>
         <rect x="42" y="32" width="4" height="10" rx="2" fill="#EF4444"/>
@@ -244,8 +244,8 @@
       </svg>
     </div>
     <div class="title-block">
-      <h1>Grabby: Video Screenshot Tool</h1>
-      <p>Load a local video, capture timestamped screenshots, and download for reflective reporting.</p>
+      <h1>Grabby: Screenshot Tool</h1>
+      <p>Load a local video, capture timestamped screenshots, annotate and download for use in reports and reflections.</p>
     </div>
   </header>
 
@@ -266,16 +266,17 @@
       <div class="timecode" id="timecode">00:00.00</div>
       <button class="button" id="copyTimecode">Copy timecode</button>
       <button class="button primary" id="captureBtn">Screenshot (S)</button>
-      <div class="shortcut-guide">Space: play/pause · S: screenshot · J/K/L: shuttle</div>
+      <div class="shortcut-guide">S: screenshot · J/K/L: shuttle</div>
     </section>
 
     <section class="gallery-header">
       <div>
         <strong>Evidence Gallery</strong>
-        <div class="hint">Drag thumbnails to reorder. Click a thumbnail to download larger PNG with any notes burned in or click Download All for a zip file of all your images.</div>
+        <div class="hint">Drag thumbnails to reorder. Click thumbnail to download full-resolution PNG with your note burned in. Click download All to download a zip file or download a word doc with your images.</div>
       </div>
       <div class="gallery-actions">
-        <button class="button" id="downloadAllBtn">Download All (Zip)</button>
+        <button class="button" id="downloadAllBtn">Download all (zip) </button>
+        <button class="button" id="downloadDocBtn">Download Word</button>
         <button class="button" id="clearBtn">Clear all</button>
       </div>
     </section>
@@ -300,6 +301,7 @@
     const gallery = document.getElementById("gallery");
     const clearBtn = document.getElementById("clearBtn");
     const downloadAllBtn = document.getElementById("downloadAllBtn");
+    const downloadDocBtn = document.getElementById("downloadDocBtn");
     const copyTimecode = document.getElementById("copyTimecode");
     let objectUrl = null;
 
@@ -577,6 +579,73 @@
       const link = document.createElement("a");
       link.href = URL.createObjectURL(zipBlob);
       link.download = "evidence-gallery.zip";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    });
+
+    downloadDocBtn.addEventListener("click", async () => {
+      const thumbs = Array.from(gallery.querySelectorAll(".thumb"));
+      if (!thumbs.length) return;
+      const sections = [];
+      for (const thumb of thumbs) {
+        const note = thumb.querySelector("textarea");
+        const timecodeLabel = thumb.dataset.timecode || "00:00.00";
+        const captionParts = [`Timecode: ${timecodeLabel}`];
+        const noteText = note ? note.value.trim() : "";
+        if (noteText) {
+          captionParts.push(noteText);
+        }
+        const dataUrl = await buildDownloadDataUrl(thumb, noteText);
+        // Using explicit width attribute for Word's legacy parser compatibility
+        sections.push(`
+          <div style="margin-bottom:30px; page-break-inside: avoid;">
+            <img src="${dataUrl}" width="500" style="width: 13cm; height: auto; border: 1px solid #d7dde7; display: block;" />
+            <p style="font-family: Arial, sans-serif; font-size: 11pt; color: #172033; margin: 10px 0; line-height: 1.4;">
+              <strong>${captionParts[0]}</strong>${captionParts[1] ? ' — ' + captionParts[1] : ''}
+            </p>
+          </div>
+        `);
+      }
+      const docHtml = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+          <head>
+            <meta charset="UTF-8">
+            <title>Evidence Gallery</title>
+            <!--[if gte mso 9]>
+            <xml>
+              <w:WordDocument>
+                <w:View>Print</w:View>
+                <w:Zoom>100</w:Zoom>
+                <w:DoNotOptimizeForBrowser/>
+              </w:WordDocument>
+            </xml>
+            <![endif]-->
+            <style>
+              @page {
+                size: 21cm 29.7cm;
+                margin: 2cm 2cm 2cm 2cm;
+              }
+              body { 
+                font-family: "Segoe UI", Arial, sans-serif; 
+                margin: 0;
+                padding: 0;
+              }
+            </style>
+          </head>
+          <body>
+            <div style="width: 100%; max-width: 17cm; margin: 0 auto; padding: 20px;">
+              <h1 style="font-size: 22pt; border-bottom: 2px solid #2f6fed; padding-bottom: 10px; margin-bottom: 30px; color: #172033;">Evidence Gallery Report</h1>
+              ${sections.join("")}
+            </div>
+          </body>
+        </html>
+      `;
+      const blob = new Blob([docHtml], { type: "application/msword" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "evidence-gallery.doc";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
