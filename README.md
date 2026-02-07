@@ -34,3 +34,14 @@ A more advanced version of scriptbuilder, this is still a stand alone webpage th
   - Overlay GFX can be defined globally by using the Overlay Graphics check box. But you can be more specific with timing into a script by using the [GFX:TEXT] tag where the text is the text content to show on screen.
  
 See a working version at https://journalism.cards/visualscript/ 
+
+## grabby.html ## 
+<img width="577" height="629" alt="image" src="https://github.com/user-attachments/assets/89b3e611-26e4-448a-8fc2-f063b5672525" />
+
+A very lightweight shot logger/screengrab utility. Designed to help students get screenshots for their reports and reflections.
+
+- Works as a standalone HMTL file (but requires connection to access scripts)
+- Download individual images or a zip file of multiple images. 
+- add notes which are overlayed on the image 
+- timecode burned into the image.
+
