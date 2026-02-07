@@ -318,14 +318,27 @@
       timecode.textContent = formatTimecode(video.currentTime || 0);
     };
 
+    const setStatus = (message, isError = false) => {
+      fileName.textContent = message;
+      fileName.style.color = isError ? "#b91c1c" : "var(--muted)";
+    };
+
+    const isVideoFile = (file) => file && file.type && file.type.startsWith("video/");
+
     const loadVideoFile = (file) => {
       if (!file) return;
+      if (!isVideoFile(file)) {
+        setStatus("Unsupported file type. Please choose a video file.", true);
+        video.removeAttribute("src");
+        video.load();
+        return;
+      }
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
       }
       objectUrl = URL.createObjectURL(file);
       video.src = objectUrl;
-      fileName.textContent = file.name;
+      setStatus(file.name);
     };
 
     fileInput.addEventListener("change", (event) => {
@@ -357,6 +370,15 @@
 
     video.addEventListener("timeupdate", updateTimecode);
     video.addEventListener("loadedmetadata", updateTimecode);
+    video.addEventListener("error", () => {
+      setStatus("Unable to load video. Try another file.", true);
+    });
+
+    window.addEventListener("beforeunload", () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    });
 
     const drawTimecode = (ctx, text, width, height) => {
       const fontSize = Math.max(24, Math.floor(width / 25));
@@ -404,7 +426,7 @@
       });
     };
 
-    const buildDownloadDataUrl = (thumb, note) => new Promise((resolve) => {
+    const buildDownloadDataUrl = (thumb, note) => new Promise((resolve, reject) => {
       const fullImage = new Image();
       fullImage.onload = () => {
         const downloadCanvas = document.createElement("canvas");
@@ -415,6 +437,7 @@
         drawNote(downloadCtx, note.trim(), downloadCanvas.width, downloadCanvas.height);
         resolve(downloadCanvas.toDataURL("image/png"));
       };
+      fullImage.onerror = () => reject(new Error("Image load failed"));
       fullImage.src = thumb.dataset.fullImage;
     });
 
@@ -427,6 +450,13 @@
       }
       return bytes;
     };
+
+    const escapeHtml = (value) => value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
 
     const crcTable = (() => {
       const table = new Uint32Array(256);
@@ -515,7 +545,10 @@
     };
 
     const captureScreenshot = () => {
-      if (!video.videoWidth) return;
+      if (!video.src || video.readyState < 2 || !video.videoWidth) {
+        setStatus("Load a playable video before capturing.", true);
+        return;
+      }
       const canvas = document.createElement("canvas");
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -552,6 +585,8 @@
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
+        }).catch(() => {
+          setStatus("Unable to build download. Try again.", true);
         });
       });
       gallery.prepend(thumb);
@@ -566,14 +601,22 @@
 
     downloadAllBtn.addEventListener("click", async () => {
       const thumbs = Array.from(gallery.querySelectorAll(".thumb"));
-      if (!thumbs.length) return;
+      if (!thumbs.length) {
+        setStatus("Add screenshots before downloading.", true);
+        return;
+      }
       const files = [];
       for (const thumb of thumbs) {
         const note = thumb.querySelector("textarea");
         const timecodeLabel = thumb.dataset.timecode || "00:00.00";
         const filename = `screenshot_${sanitizeFileTimecode(timecodeLabel)}.png`;
-        const downloadUrl = await buildDownloadDataUrl(thumb, note ? note.value : "");
-        files.push({ name: filename, bytes: dataUrlToUint8Array(downloadUrl) });
+        try {
+          const downloadUrl = await buildDownloadDataUrl(thumb, note ? note.value : "");
+          files.push({ name: filename, bytes: dataUrlToUint8Array(downloadUrl) });
+        } catch (error) {
+          setStatus("Unable to build all downloads. Try again.", true);
+          return;
+        }
       }
       const zipBlob = buildZipBlob(files);
       const link = document.createElement("a");
@@ -587,23 +630,30 @@
 
     downloadDocBtn.addEventListener("click", async () => {
       const thumbs = Array.from(gallery.querySelectorAll(".thumb"));
-      if (!thumbs.length) return;
+      if (!thumbs.length) {
+        setStatus("Add screenshots before downloading.", true);
+        return;
+      }
       const sections = [];
       for (const thumb of thumbs) {
         const note = thumb.querySelector("textarea");
         const timecodeLabel = thumb.dataset.timecode || "00:00.00";
-        const captionParts = [`Timecode: ${timecodeLabel}`];
         const noteText = note ? note.value.trim() : "";
-        if (noteText) {
-          captionParts.push(noteText);
+        const safeTimecode = escapeHtml(`Timecode: ${timecodeLabel}`);
+        const safeNoteText = escapeHtml(noteText);
+        let dataUrl = "";
+        try {
+          dataUrl = await buildDownloadDataUrl(thumb, noteText);
+        } catch (error) {
+          setStatus("Unable to build Word download. Try again.", true);
+          return;
         }
-        const dataUrl = await buildDownloadDataUrl(thumb, noteText);
         // Using explicit width attribute for Word's legacy parser compatibility
         sections.push(`
           <div style="margin-bottom:30px; page-break-inside: avoid;">
             <img src="${dataUrl}" width="500" style="width: 13cm; height: auto; border: 1px solid #d7dde7; display: block;" />
             <p style="font-family: Arial, sans-serif; font-size: 11pt; color: #172033; margin: 10px 0; line-height: 1.4;">
-              <strong>${captionParts[0]}</strong>${captionParts[1] ? ' — ' + captionParts[1] : ''}
+              <strong>${safeTimecode}</strong>${safeNoteText ? ' — ' + safeNoteText : ''}
             </p>
           </div>
         `);
@@ -652,10 +702,27 @@
       setTimeout(() => URL.revokeObjectURL(link.href), 1000);
     });
 
+    const fallbackCopyText = (text) => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const success = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return success;
+    };
+
     copyTimecode.addEventListener("click", async () => {
       const tc = formatTimecode(video.currentTime || 0);
       try {
-        await navigator.clipboard.writeText(tc);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(tc);
+        } else if (!fallbackCopyText(tc)) {
+          throw new Error("Clipboard unavailable");
+        }
         copyTimecode.textContent = "Copied!";
         setTimeout(() => {
           copyTimecode.textContent = "Copy timecode";
