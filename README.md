@@ -41,7 +41,8 @@ See a working version at https://journalism.cards/visualscript/
 A very lightweight shot logger/screengrab utility. Designed to help students get screenshots for their reports and reflections.
 
 - Works as a standalone HMTL file (but requires connection to access scripts)
-- Download individual images or a zip file of multiple images. 
+- Download individual images or a zip file of multiple images.
+- Download a Word doc with images added to form the skeleton of a report
 - add notes which are overlayed on the image 
 - timecode burned into the image.
 
