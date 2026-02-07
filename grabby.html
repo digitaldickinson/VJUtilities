@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video Evidence Screenshot Tool</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #5b6374;
+      --accent: #2f6fed;
+      --border: #d7dde7;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+    header {
+      max-width: 1100px;
+      margin: 0 auto 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 6px;
+    }
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .logo {
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(23, 32, 51, 0.08);
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin: 12px 0 16px;
+    }
+    .shortcut-guide {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .file-drop {
+      flex: 1 1 280px;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      background: #fdfdff;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+    .file-drop.dragover {
+      border-color: var(--accent);
+      background: #eef4ff;
+    }
+    .file-drop input {
+      display: none;
+    }
+    .file-drop label {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .button {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .button:active {
+      transform: scale(0.97);
+    }
+    .timecode {
+      font-variant-numeric: tabular-nums;
+      font-size: 1.1rem;
+      font-weight: 600;
+      background: #101626;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+    .player-wrapper {
+      position: relative;
+      margin: 16px 0 12px;
+    }
+    video {
+      width: 100%;
+      max-width: 100%;
+      border-radius: 12px;
+      background: #000;
+    }
+    .gallery-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 18px;
+      gap: 12px;
+    }
+    .gallery-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .thumb {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: grab;
+    }
+    .thumb.dragging {
+      opacity: 0.6;
+    }
+    .thumb img {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .thumb small {
+      color: var(--muted);
+      font-size: 0.78rem;
+      word-break: break-word;
+    }
+    .thumb textarea {
+      width: 100%;
+      min-height: 58px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-family: inherit;
+      font-size: 0.8rem;
+      resize: vertical;
+    }
+    .hint {
+      margin-top: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    footer {
+      margin: 24px auto 0;
+      max-width: 1100px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+    @media (max-width: 720px) {
+      body {
+        padding: 16px;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo" aria-hidden="true">
+      <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Red crab logo">
+        <rect width="100" height="100" rx="20" fill="#F8FAFC" />
+        <path d="M25 60C25 48.9543 36.1929 40 50 40C63.8071 40 75 48.9543 75 60C75 71.0457 63.8071 80 50 80C36.1929 80 25 71.0457 25 60Z" fill="#EF4444"/>
+        <rect x="42" y="32" width="4" height="10" rx="2" fill="#EF4444"/>
+        <rect x="54" y="32" width="4" height="10" rx="2" fill="#EF4444"/>
+        <circle cx="44" cy="32" r="3" fill="white"/>
+        <circle cx="56" cy="32" r="3" fill="white"/>
+        <circle cx="44" cy="32" r="1.5" fill="#1E293B"/>
+        <circle cx="56" cy="32" r="1.5" fill="#1E293B"/>
+        <path d="M25 55L15 50" stroke="#EF4444" stroke-width="4" stroke-linecap="round"/>
+        <path d="M25 65L15 70" stroke="#EF4444" stroke-width="4" stroke-linecap="round"/>
+        <path d="M75 55L85 50" stroke="#EF4444" stroke-width="4" stroke-linecap="round"/>
+        <path d="M75 65L85 70" stroke="#EF4444" stroke-width="4" stroke-linecap="round"/>
+        <path d="M20 25V15H30" stroke="#DC2626" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M20 15L28 35" stroke="#EF4444" stroke-width="5" stroke-linecap="round"/>
+        <path d="M70 15H80V25" stroke="#DC2626" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M80 15L72 35" stroke="#EF4444" stroke-width="5" stroke-linecap="round"/>
+        <rect x="20" y="15" width="60" height="50" rx="2" stroke="#94A3B8" stroke-width="1" stroke-dasharray="2 2" />
+      </svg>
+    </div>
+    <div class="title-block">
+      <h1>Grabby: Video Screenshot Tool</h1>
+      <p>Load a local video, capture timestamped screenshots, and download for reflective reporting.</p>
+    </div>
+  </header>
+
+  <main class="app">
+    <section class="controls">
+      <div class="file-drop" id="fileDrop">
+        <input id="fileInput" type="file" accept="video/*" />
+        <p><label for="fileInput">Choose a video</label> or drag &amp; drop here</p>
+        <small id="fileName" class="hint">No video loaded.</small>
+      </div>
+    </section>
+
+    <section class="player-wrapper">
+      <video id="video" controls></video>
+    </section>
+
+    <section class="toolbar">
+      <div class="timecode" id="timecode">00:00.00</div>
+      <button class="button" id="copyTimecode">Copy timecode</button>
+      <button class="button primary" id="captureBtn">Screenshot (S)</button>
+      <div class="shortcut-guide">Space: play/pause · S: screenshot · J/K/L: shuttle</div>
+    </section>
+
+    <section class="gallery-header">
+      <div>
+        <strong>Evidence Gallery</strong>
+        <div class="hint">Drag thumbnails to reorder. Click a thumbnail to download larger PNG with any notes burned in or click Download All for a zip file of all your images.</div>
+      </div>
+      <div class="gallery-actions">
+        <button class="button" id="downloadAllBtn">Download All (Zip)</button>
+        <button class="button" id="clearBtn">Clear all</button>
+      </div>
+    </section>
+
+    <section class="gallery" id="gallery"></section>
+  </main>
+
+  <footer>
+    Built with native HTML5 video. Shuttle controls inspired by
+    <a href="https://github.com/sweetberry/videojs-shuttle-controls" target="_blank" rel="noopener noreferrer">
+      Sweetberry videojs-shuttle-controls
+    </a>.
+  </footer>
+
+  <script>
+    const video = document.getElementById("video");
+    const fileInput = document.getElementById("fileInput");
+    const fileDrop = document.getElementById("fileDrop");
+    const fileName = document.getElementById("fileName");
+    const timecode = document.getElementById("timecode");
+    const captureBtn = document.getElementById("captureBtn");
+    const gallery = document.getElementById("gallery");
+    const clearBtn = document.getElementById("clearBtn");
+    const downloadAllBtn = document.getElementById("downloadAllBtn");
+    const copyTimecode = document.getElementById("copyTimecode");
+    let objectUrl = null;
+
+    const formatTimecode = (seconds) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      const ms = Math.floor((seconds - Math.floor(seconds)) * 100);
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
+    };
+
+    const sanitizeFileTimecode = (tc) => tc.replace(/[:.]/g, "-");
+
+    const updateTimecode = () => {
+      timecode.textContent = formatTimecode(video.currentTime || 0);
+    };
+
+    const loadVideoFile = (file) => {
+      if (!file) return;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+      objectUrl = URL.createObjectURL(file);
+      video.src = objectUrl;
+      fileName.textContent = file.name;
+    };
+
+    fileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      loadVideoFile(file);
+    });
+
+    ["dragenter", "dragover"].forEach((evt) => {
+      fileDrop.addEventListener(evt, (event) => {
+        event.preventDefault();
+        fileDrop.classList.add("dragover");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((evt) => {
+      fileDrop.addEventListener(evt, (event) => {
+        event.preventDefault();
+        fileDrop.classList.remove("dragover");
+      });
+    });
+
+    fileDrop.addEventListener("drop", (event) => {
+      const file = event.dataTransfer.files[0];
+      if (file) {
+        fileInput.value = "";
+        loadVideoFile(file);
+      }
+    });
+
+    video.addEventListener("timeupdate", updateTimecode);
+    video.addEventListener("loadedmetadata", updateTimecode);
+
+    const drawTimecode = (ctx, text, width, height) => {
+      const fontSize = Math.max(24, Math.floor(width / 25));
+      ctx.font = `bold ${fontSize}px "Consolas", "Courier New", monospace`;
+      const padding = fontSize * 0.5;
+      const metrics = ctx.measureText(text);
+      const boxWidth = metrics.width + padding * 2;
+      const boxHeight = fontSize + padding;
+      const x = padding;
+      const y = padding;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+      ctx.fillRect(x, y, boxWidth, boxHeight);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(text, x + padding, y + fontSize);
+    };
+
+    const drawNote = (ctx, note, width, height) => {
+      if (!note) return;
+      const fontSize = Math.max(18, Math.floor(width / 40));
+      const padding = fontSize * 0.6;
+      ctx.font = `${fontSize}px "Inter", "Segoe UI", system-ui, sans-serif`;
+      const maxWidth = width - padding * 2;
+      const words = note.split(" ");
+      const lines = [];
+      let line = "";
+      words.forEach((word) => {
+        const testLine = line ? `${line} ${word}` : word;
+        if (ctx.measureText(testLine).width > maxWidth && line) {
+          lines.push(line);
+          line = word;
+        } else {
+          line = testLine;
+        }
+      });
+      if (line) lines.push(line);
+      const lineHeight = fontSize * 1.2;
+      const boxHeight = lines.length * lineHeight + padding * 2;
+      const x = padding;
+      const y = height - boxHeight - padding;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+      ctx.fillRect(x, y, maxWidth, boxHeight);
+      ctx.fillStyle = "#ffffff";
+      lines.forEach((text, index) => {
+        ctx.fillText(text, x + padding, y + padding + (index + 1) * lineHeight);
+      });
+    };
+
+    const buildDownloadDataUrl = (thumb, note) => new Promise((resolve) => {
+      const fullImage = new Image();
+      fullImage.onload = () => {
+        const downloadCanvas = document.createElement("canvas");
+        downloadCanvas.width = fullImage.width;
+        downloadCanvas.height = fullImage.height;
+        const downloadCtx = downloadCanvas.getContext("2d");
+        downloadCtx.drawImage(fullImage, 0, 0);
+        drawNote(downloadCtx, note.trim(), downloadCanvas.width, downloadCanvas.height);
+        resolve(downloadCanvas.toDataURL("image/png"));
+      };
+      fullImage.src = thumb.dataset.fullImage;
+    });
+
+    const dataUrlToUint8Array = (dataUrl) => {
+      const base64 = dataUrl.split(",")[1];
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    };
+
+    const crcTable = (() => {
+      const table = new Uint32Array(256);
+      for (let i = 0; i < 256; i += 1) {
+        let c = i;
+        for (let j = 0; j < 8; j += 1) {
+          c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+        }
+        table[i] = c >>> 0;
+      }
+      return table;
+    })();
+
+    const crc32 = (bytes) => {
+      let crc = 0xffffffff;
+      for (let i = 0; i < bytes.length; i += 1) {
+        crc = crcTable[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+      }
+      return (crc ^ 0xffffffff) >>> 0;
+    };
+
+    const buildZipBlob = (files) => {
+      const encoder = new TextEncoder();
+      const chunks = [];
+      const centralChunks = [];
+      let offset = 0;
+
+      files.forEach((file) => {
+        const nameBytes = encoder.encode(file.name);
+        const crc = crc32(file.bytes);
+        const localHeader = new Uint8Array(30 + nameBytes.length);
+        const view = new DataView(localHeader.buffer);
+        view.setUint32(0, 0x04034b50, true);
+        view.setUint16(4, 20, true);
+        view.setUint16(6, 0, true);
+        view.setUint16(8, 0, true);
+        view.setUint16(10, 0, true);
+        view.setUint16(12, 0, true);
+        view.setUint32(14, crc, true);
+        view.setUint32(18, file.bytes.length, true);
+        view.setUint32(22, file.bytes.length, true);
+        view.setUint16(26, nameBytes.length, true);
+        view.setUint16(28, 0, true);
+        localHeader.set(nameBytes, 30);
+        chunks.push(localHeader, file.bytes);
+
+        const centralHeader = new Uint8Array(46 + nameBytes.length);
+        const centralView = new DataView(centralHeader.buffer);
+        centralView.setUint32(0, 0x02014b50, true);
+        centralView.setUint16(4, 20, true);
+        centralView.setUint16(6, 20, true);
+        centralView.setUint16(8, 0, true);
+        centralView.setUint16(10, 0, true);
+        centralView.setUint16(12, 0, true);
+        centralView.setUint16(14, 0, true);
+        centralView.setUint32(16, crc, true);
+        centralView.setUint32(20, file.bytes.length, true);
+        centralView.setUint32(24, file.bytes.length, true);
+        centralView.setUint16(28, nameBytes.length, true);
+        centralView.setUint16(30, 0, true);
+        centralView.setUint16(32, 0, true);
+        centralView.setUint16(34, 0, true);
+        centralView.setUint16(36, 0, true);
+        centralView.setUint32(38, 0, true);
+        centralView.setUint32(42, offset, true);
+        centralHeader.set(nameBytes, 46);
+        centralChunks.push(centralHeader);
+
+        offset += localHeader.length + file.bytes.length;
+      });
+
+      const centralOffset = offset;
+      const centralSize = centralChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      const endRecord = new Uint8Array(22);
+      const endView = new DataView(endRecord.buffer);
+      endView.setUint32(0, 0x06054b50, true);
+      endView.setUint16(4, 0, true);
+      endView.setUint16(6, 0, true);
+      endView.setUint16(8, files.length, true);
+      endView.setUint16(10, files.length, true);
+      endView.setUint32(12, centralSize, true);
+      endView.setUint32(16, centralOffset, true);
+      endView.setUint16(20, 0, true);
+
+      return new Blob([...chunks, ...centralChunks, endRecord], { type: "application/zip" });
+    };
+
+    const captureScreenshot = () => {
+      if (!video.videoWidth) return;
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const tc = formatTimecode(video.currentTime || 0);
+      drawTimecode(ctx, tc, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/png");
+      const thumb = document.createElement("div");
+      thumb.className = "thumb";
+      thumb.draggable = true;
+      thumb.dataset.fullImage = dataUrl;
+      thumb.dataset.timecode = tc;
+      const img = document.createElement("img");
+      img.src = dataUrl;
+      img.alt = `Screenshot ${tc}`;
+      img.width = 320;
+      img.height = 180;
+      const label = document.createElement("small");
+      label.textContent = `Timecode: ${tc}`;
+      const note = document.createElement("textarea");
+      note.placeholder = "Why this matters (optional)";
+      note.addEventListener("click", (event) => event.stopPropagation());
+      note.addEventListener("keydown", (event) => event.stopPropagation());
+      thumb.appendChild(img);
+      thumb.appendChild(label);
+      thumb.appendChild(note);
+      const filename = `screenshot_${sanitizeFileTimecode(tc)}.png`;
+      thumb.addEventListener("click", () => {
+        buildDownloadDataUrl(thumb, note.value).then((downloadUrl) => {
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      });
+      gallery.prepend(thumb);
+      enableDragAndDrop(thumb);
+    };
+
+    captureBtn.addEventListener("click", captureScreenshot);
+
+    clearBtn.addEventListener("click", () => {
+      gallery.innerHTML = "";
+    });
+
+    downloadAllBtn.addEventListener("click", async () => {
+      const thumbs = Array.from(gallery.querySelectorAll(".thumb"));
+      if (!thumbs.length) return;
+      const files = [];
+      for (const thumb of thumbs) {
+        const note = thumb.querySelector("textarea");
+        const timecodeLabel = thumb.dataset.timecode || "00:00.00";
+        const filename = `screenshot_${sanitizeFileTimecode(timecodeLabel)}.png`;
+        const downloadUrl = await buildDownloadDataUrl(thumb, note ? note.value : "");
+        files.push({ name: filename, bytes: dataUrlToUint8Array(downloadUrl) });
+      }
+      const zipBlob = buildZipBlob(files);
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = "evidence-gallery.zip";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    });
+
+    copyTimecode.addEventListener("click", async () => {
+      const tc = formatTimecode(video.currentTime || 0);
+      try {
+        await navigator.clipboard.writeText(tc);
+        copyTimecode.textContent = "Copied!";
+        setTimeout(() => {
+          copyTimecode.textContent = "Copy timecode";
+        }, 1200);
+      } catch (error) {
+        copyTimecode.textContent = "Copy failed";
+        setTimeout(() => {
+          copyTimecode.textContent = "Copy timecode";
+        }, 1200);
+      }
+    });
+
+    const togglePlayback = () => {
+      if (!video.src) return;
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+    };
+
+    const videojs = (id) => {
+      const element = document.getElementById(id);
+      const player = {
+        el: element,
+        on: (event, handler) => element.addEventListener(event, handler),
+        play: () => element.play(),
+        pause: () => element.pause(),
+        paused: () => element.paused,
+        currentTime: (value) => {
+          if (typeof value === "number") {
+            element.currentTime = value;
+          }
+          return element.currentTime;
+        },
+        playbackRate: (value) => {
+          if (typeof value === "number") {
+            element.playbackRate = value;
+          }
+          return element.playbackRate;
+        }
+      };
+      Object.keys(videojs.plugins).forEach((name) => {
+        player[name] = (options) => videojs.plugins[name].call(player, options);
+      });
+      return player;
+    };
+
+    videojs.plugins = {};
+    videojs.registerPlugin = (name, plugin) => {
+      videojs.plugins[name] = plugin;
+    };
+
+    // Sweetberry-style shuttle controls plugin for video.js-style players.
+    videojs.registerPlugin("shuttleControls", function (options = {}) {
+      const rates = options.rates || [1, 2, 4, 8, 16];
+      let index = 0;
+      let direction = 0;
+      let timer = null;
+
+      const clearTimer = () => {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+      };
+
+      const startReverse = (rate) => {
+        clearTimer();
+        timer = setInterval(() => {
+          const next = Math.max(this.currentTime() - rate * 0.1, 0);
+          this.currentTime(next);
+        }, 100);
+      };
+
+      const setShuttle = (nextDirection, nextIndex) => {
+        direction = nextDirection;
+        index = nextIndex;
+        if (direction === 0) {
+          clearTimer();
+          this.pause();
+          this.playbackRate(1);
+          index = 0;
+          return;
+        }
+        const speed = rates[index] || 1;
+        if (direction > 0) {
+          clearTimer();
+          this.playbackRate(speed);
+          this.play();
+        } else {
+          this.pause();
+          this.playbackRate(1);
+          startReverse(speed);
+        }
+      };
+
+      const shuttleForward = () => {
+        const nextIndex = direction === 1 ? Math.min(index + 1, rates.length - 1) : 0;
+        setShuttle(1, nextIndex);
+      };
+
+      const shuttleReverse = () => {
+        const nextIndex = direction === -1 ? Math.min(index + 1, rates.length - 1) : 0;
+        setShuttle(-1, nextIndex);
+      };
+
+      const shuttleStop = () => {
+        setShuttle(0, 0);
+      };
+
+      document.addEventListener("keydown", (event) => {
+        if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
+          return;
+        }
+        const key = event.key.toLowerCase();
+        if (key === "j") {
+          event.preventDefault();
+          shuttleReverse();
+        }
+        if (key === "k") {
+          event.preventDefault();
+          shuttleStop();
+        }
+        if (key === "l") {
+          event.preventDefault();
+          shuttleForward();
+        }
+      });
+
+      this.on("play", () => {
+        if (direction === 0) {
+          clearTimer();
+          this.playbackRate(1);
+        }
+      });
+
+      this.on("pause", () => {
+        if (direction !== 0) {
+          shuttleStop();
+        }
+      });
+    });
+
+    const player = videojs("video");
+    player.shuttleControls({ rates: [1, 2, 4, 8, 16] });
+
+    document.addEventListener("keydown", (event) => {
+      if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) {
+        return;
+      }
+      if (event.code === "Space") {
+        event.preventDefault();
+        togglePlayback();
+      }
+      if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        captureScreenshot();
+      }
+    });
+
+    let dragSrc = null;
+
+    const handleDragStart = (event) => {
+      dragSrc = event.currentTarget;
+      event.dataTransfer.effectAllowed = "move";
+      event.currentTarget.classList.add("dragging");
+    };
+
+    const handleDragEnd = (event) => {
+      event.currentTarget.classList.remove("dragging");
+      dragSrc = null;
+    };
+
+    const handleDragOver = (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      const target = event.currentTarget;
+      if (dragSrc && target !== dragSrc) {
+        const rect = target.getBoundingClientRect();
+        const next = (event.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+        gallery.insertBefore(dragSrc, next ? target.nextSibling : target);
+      }
+    };
+
+    const enableDragAndDrop = (thumb) => {
+      thumb.addEventListener("dragstart", handleDragStart);
+      thumb.addEventListener("dragend", handleDragEnd);
+      thumb.addEventListener("dragover", handleDragOver);
+    };
+  </script>
+</body>
+</html>
