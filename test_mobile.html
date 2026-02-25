@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile VO Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Prevents accidental zooming on mobile inputs */
+        input, textarea { font-size: 16px !important; }
+        
+        #autocue-display {
+            scroll-behavior: smooth;
+            line-height: 1.6;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .reading-line {
+            border-top: 2px solid #38bdf8;
+            position: absolute;
+            top: 30%;
+            left: 0;
+            right: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .countdown-overlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            font-weight: 800;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-hidden">
+
+    <div class="w-full bg-black relative aspect-video shadow-xl border-b border-slate-800">
+        <div id="countdown" class="countdown-overlay">3</div>
+        <video id="main-video" class="w-full h-full hidden" playsinline></video>
+        
+        <div id="video-placeholder" class="absolute inset-0 flex flex-col items-center justify-center p-4">
+            <label class="bg-sky-600 px-6 py-3 rounded-full font-bold text-sm shadow-lg cursor-pointer active:scale-95 transition">
+                SELECT VIDEO
+                <input type="file" id="video-input" accept="video/*" class="hidden"/>
+            </label>
+        </div>
+        
+        <div class="absolute bottom-2 right-2 flex gap-2">
+            <div id="speed-indicator" class="bg-black/60 px-2 py-1 rounded text-[10px] font-mono">1.0x</div>
+            <div id="time-display" class="bg-black/60 px-2 py-1 rounded text-[10px] font-mono text-sky-400">0:00</div>
+        </div>
+    </div>
+
+    <div class="bg-slate-900 p-3 flex flex-col gap-2 border-b border-slate-800">
+        <div class="flex gap-2">
+            <button id="rec-btn" class="flex-1 bg-red-600 active:bg-red-700 py-4 rounded-xl font-bold text-sm uppercase tracking-wider">Record</button>
+            <button id="stop-btn" class="flex-1 bg-slate-700 disabled:opacity-30 py-4 rounded-xl font-bold text-sm uppercase" disabled>Stop</button>
+        </div>
+        <button id="sync-play-btn" class="hidden w-full bg-emerald-600 py-3 rounded-lg font-bold text-sm">▶ REVIEW TAKE</button>
+    </div>
+
+    <div class="flex-grow flex flex-col overflow-hidden relative">
+        <div class="p-2 bg-slate-900">
+            <textarea id="script-input" class="w-full h-16 bg-slate-800 text-slate-300 p-2 rounded-lg border border-slate-700 resize-none text-xs" placeholder="Tap to paste your script..."></textarea>
+        </div>
+        
+        <div class="relative flex-grow overflow-hidden bg-slate-950">
+            <div class="reading-line"></div>
+            <div id="autocue-display" class="absolute inset-0 p-6 overflow-y-auto text-2xl font-bold whitespace-pre-wrap text-center">
+                <span class="opacity-20 italic">Script scrolls here...</span>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audio-playback" playsinline></audio>
+
+    <script>
+        const video = document.getElementById('main-video');
+        const videoInput = document.getElementById('video-input');
+        const scriptInput = document.getElementById('script-input');
+        const autocue = document.getElementById('autocue-display');
+        const recBtn = document.getElementById('rec-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const syncPlayBtn = document.getElementById('sync-play-btn');
+        const countdownOverlay = document.getElementById('countdown');
+        const audioPlayback = document.getElementById('audio-playback');
+        const speedIndicator = document.getElementById('speed-indicator');
+        const timeDisplay = document.getElementById('time-display');
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let currentSpeed = 1.0;
+
+        // Load Video
+        videoInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                video.src = URL.createObjectURL(file);
+                video.classList.remove('hidden');
+                document.getElementById('video-placeholder').classList.add('hidden');
+                video.load(); // Required for iOS
+            }
+        };
+
+        // Script Update
+        scriptInput.oninput = (e) => {
+            autocue.innerText = e.target.value || "Script scrolls here...";
+        };
+
+        // Recording Logic with Mobile Countdown
+        recBtn.onclick = async () => {
+            try {
+                // Request mic immediately on user tap (iOS requirement)
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                let count = 3;
+                countdownOverlay.style.display = 'flex';
+                countdownOverlay.innerText = count;
+                
+                const timer = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countdownOverlay.innerText = count;
+                    } else {
+                        clearInterval(timer);
+                        countdownOverlay.style.display = 'none';
+                        startRecording();
+                    }
+                }, 800);
+
+                function startRecording() {
+                    audioChunks = [];
+                    mediaRecorder.start();
+                    video.currentTime = 0;
+                    video.muted = false; // Let them hear the video if they want
+                    video.play();
+                    recBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    syncPlayBtn.classList.add('hidden');
+                }
+
+                mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/mp4' }); // Use MP4 for better mobile compat
+                    audioPlayback.src = URL.createObjectURL(audioBlob);
+                    syncPlayBtn.classList.remove('hidden');
+                    video.muted = true;
+                };
+
+            } catch (err) {
+                alert("Please allow microphone access in settings.");
+            }
+        };
+
+        stopBtn.onclick = () => {
+            mediaRecorder.stop();
+            video.pause();
+            recBtn.disabled = false;
+            stopBtn.disabled = true;
+        };
+
+        // Review Button
+        syncPlayBtn.onclick = () => {
+            if (video.paused) {
+                video.currentTime = 0;
+                audioPlayback.currentTime = 0;
+                video.play();
+                audioPlayback.play();
+                syncPlayBtn.innerText = "⏸ PAUSE REVIEW";
+            } else {
+                video.pause();
+                audioPlayback.pause();
+                syncPlayBtn.innerText = "▶ RESUME REVIEW";
+            }
+        };
+
+        // Sync Engine
+        video.ontimeupdate = () => {
+            timeDisplay.innerText = Math.floor(video.currentTime) + "s";
+            if (video.duration) {
+                const scrollPercent = video.currentTime / video.duration;
+                autocue.scrollTop = (scrollPercent * autocue.scrollHeight) - (autocue.clientHeight * 0.3);
+            }
+        };
+
+        // Sync playback states
+        video.onplay = () => { if(audioPlayback.src) audioPlayback.play(); };
+        video.onpause = () => { if(audioPlayback.src) audioPlayback.pause(); };
+
+        // Speed adjustment via tapping the speed indicator
+        speedIndicator.onclick = () => {
+            currentSpeed = currentSpeed >= 1.5 ? 0.7 : currentSpeed + 0.3;
+            video.playbackRate = currentSpeed;
+            audioPlayback.playbackRate = currentSpeed;
+            speedIndicator.innerText = currentSpeed.toFixed(1) + "x";
+        };
+    </script>
+</body>
+</html>
