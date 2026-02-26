@@ -1,23 +1,23 @@
 # VJ Teaching Utilities
-This is a set of "useful" utlities created for my video journalism teaching. Some are specific to the modules I teach and their assessment. Others are a little more generic. 
+This is a set of "useful" utilities created for my video journalism teaching. Some are specific to the modules I teach and their assessment. Others are a little more generic. 
 
 **NOTE**:These were all generated with some input from AI to create the code. 
 
-All of these were developed as standalone html pages so that they could be added to our VLE (Moodle) with no local dependencies such as graphics or JS libraries. They do require internet access to online/CDN libraries. Some corporate networks and VLE's may be picky about this, so your mileage may vary here. 
+All of these were developed as standalone HTML pages so that they could be added to our VLE (Moodle) with no local dependencies such as graphics or JS libraries. They do require internet access to online/CDN libraries. Some corporate networks and VLE's may be picky about this, so your mileage may vary. 
 
 Please feel free to use them as you wish. However, I'd really appreciate it if you let me know if you did. I'd be interested in feedback! Let me know at a.dickinson@mmu.ac.uk
 
 ## ScriptBuilder.html ## 
 <img width="699" height="391" alt="image" src="https://github.com/user-attachments/assets/5eba7084-06fa-44f5-8632-e6bd6d448c28" />
 
-A stand alone webpage that allows a student to visually build formatted script from blocks of content. This was developed for a first-year module, Media Making for Journalists, where the assessment required them to build a simple package to a preset template (hence the basic structure). It works out basic timings and forces the student to include shot descriptions, nat sound information and lower-third information on interviews. It also allows for a basic cutaway in an the interview. 
+A standalone webpage that allows a student to visually build formatted script from blocks of content. This was developed for a first-year module, Media Making for Journalists, where the assessment required them to build a simple package to a preset template (hence the basic structure). It works out basic timings and forces the student to include shot descriptions, nat sound information and lower-third information on interviews. It also allows for a basic cutaway in an the interview. 
 - Works as a standalone HMTL file (but requires connection to access scripts)
 - Student can drag-and-drop blocks for WS, MS, CU, an UNUSUAL ANGLE, Library footage or Full-screen graphic.
-  - Click to add shots functionality added to make it a bit more mobile friendly
+  - Click to add shots functionality added to make it a bit more mobile-friendly
 - Shot blocks require a shot description and detail of NAT sound before users can export script.
-- Shows a live preview of script as student makes changes
-- Users can copy a version of the script to clipboard.
-- Exports a word document with a script formatted for assessment submission
+- Shows a live preview of the script as the student makes changes
+- Users can copy a version of the script to the clipboard.
+- Exports a Word document with a script formatted for assessment submission
 
 ## Visualscript.html ## 
 <img width="600" height="504" alt="Screenshot of visualscript" src="https://github.com/user-attachments/assets/e94ba425-3345-47cb-9849-5d7fe14534e0" />
