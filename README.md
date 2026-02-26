@@ -22,16 +22,16 @@ A stand alone webpage that allows a student to visually build formatted script f
 ## Visualscript.html ## 
 <img width="600" height="504" alt="Screenshot of visualscript" src="https://github.com/user-attachments/assets/e94ba425-3345-47cb-9849-5d7fe14534e0" />
 
-A more advanced version of scriptbuilder, this is still a stand alone webpage that allows a student to visually build a formatted script from blocks of content. There is no limit to the number of shots. 
+A more advanced version of scriptbuilder, this is still a standalone webpage that allows a student to visually build a formatted script from blocks of content. There is no limit to the number of shots. 
 
 - Works as a standalone HMTL file (but requires connection to access scripts)
-- As well as the standard blocks, there is now an interview block which included the ability to add multiple cutaways. 
+- As well as the standard blocks, there is now an interview block, which includes the ability to add multiple cutaways. 
 - Most shot blocks have the opportunity to specify overlay graphics if required. 
 - Shot blocks can be set to FULL NAT which denotes only NAT sound. No script.
-- There are now tags you can add into the script directly to fine tune content:
-  - Temporary lifts in NAT sound (NAT POP) can be shown in script by adding the tag [NATPOP=X:TEXT] where x is the number of seconds you want of NAT sound and TEXT is a brief line to point to a specific sound
-  - Temporary lifts in NAT sound focus on dialouge can be noted with [SOT=X:TEXT] where x is the number of seconds you want of sound and TEXT is the specific dialogue to include
-  - Overlay GFX can be defined globally by using the Overlay Graphics check box. But you can be more specific with timing into a script by using the [GFX:TEXT] tag where the text is the text content to show on screen.
+- There are now tags you can add into the script directly to fine-tune content:
+  - Temporary lifts in NAT sound (NAT POP) can be shown in script by adding the tag [NATPOP=X:TEXT] where x is the number of seconds of NAT sound you want, and TEXT is a brief line to point to a specific sound
+  - Temporary lifts in NAT sound focus on dialogue can be noted with [SOT=X:TEXT] where x is the number of seconds of sound and TEXT is the specific dialogue to include
+  - Overlay GFX can be defined globally by using the Overlay Graphics check box. But you can be more specific with timing in a script by using the [GFX:TEXT] tag where the text is the text content to show on screen.
  
 See a working version at https://journalism.cards/visualscript/ 
 
@@ -43,6 +43,16 @@ A very lightweight shot logger/screengrab utility. Designed to help students get
 - Works as a standalone HMTL file (but requires connection to access scripts)
 - Download individual images or a zip file of multiple images.
 - Download a Word doc with images added to form the skeleton of a report
-- add notes which are overlayed on the image 
+- add notes which are overlaid on the image 
 - timecode burned into the image.
+
+## waffle.html ## 
+<img width="1093" height="692" alt="image" src="https://github.com/user-attachments/assets/fa068a59-81a1-4686-a668-be43fcfc8998" />
+
+A lightweight app to allow students to pratice writing and delivering script to pictures and to time. 
+
+- Works as a standalone HMTL file (but requires connection to access scripts)
+- The user can download an audio file of their script.
+- Note: Use the built-in microphone (requires permission for the browser to use the mic)
+
 
