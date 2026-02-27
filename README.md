@@ -38,13 +38,13 @@ See a working version at https://journalism.cards/visualscript/
 ## grabby.html ## 
 <img width="577" height="629" alt="image" src="https://github.com/user-attachments/assets/89b3e611-26e4-448a-8fc2-f063b5672525" />
 
+**Updated** Now includes an auto-detect feature.  Grabby will scuttle through a video clip and grab shots based on scene changes. 
+
 A very lightweight shot logger/screengrab utility. Designed to help students get screenshots for their reports and reflections.
 
 - Works as a standalone HMTL file (but requires connection to access scripts)
 - Download individual images or a zip file of multiple images.
 - Download a Word doc with images added to form the skeleton of a report
-- add notes which are overlaid on the image 
-- timecode burned into the image.
 
 ## waffle.html ## 
 <img width="1093" height="692" alt="image" src="https://github.com/user-attachments/assets/fa068a59-81a1-4686-a668-be43fcfc8998" />
