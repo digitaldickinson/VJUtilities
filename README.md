@@ -10,6 +10,16 @@ A collection of lightweight, standalone HTML tools created for video journalism 
 
 > Note: Some code was generated with assistance from AI and then adapted for teaching use.
 
+## Live demos
+
+Live pages are available via GitHub Pages:
+
+- ScriptBuilder: https://digitaldickinson.github.io/VJUtilities/ScriptBuilder.html
+- Visualscript: https://digitaldickinson.github.io/VJUtilities/Visualscript.html
+- Grabby: https://digitaldickinson.github.io/VJUtilities/grabby.html
+- Waffle: https://digitaldickinson.github.io/VJUtilities/waffle.html
+- Risk Assessment: https://digitaldickinson.github.io/VJUtilities/Risk_Assessment.html
+
 ## Table of Contents
 
 - [Tools](#tools)
@@ -17,6 +27,7 @@ A collection of lightweight, standalone HTML tools created for video journalism 
   - [Visualscript](#visualscripthtml)
   - [Grabby](#grabbyhtml)
   - [Waffle](#wafflehtml)
+  - [Risk Assessment](#risk-assessmenthtml)
 - [Usage](#usage)
 - [Development](#development)
 - [Feedback](#feedback)
@@ -63,6 +74,14 @@ A practice tool for writing, speaking, and timing scripts.
 - Run entirely in the browser.
 - Generate an audio file from script text.
 - Requires microphone permission for live recording.
+
+### Risk Assessment (`Risk_Assessment.html`)
+
+A location health and safety assessment builder for practical media shoots.
+
+- Complete safety checks, location details, and risk assessments in one page.
+- Export a Word document for reporting and evidence.
+- Built as a standalone HTML page with no local dependencies.
 
 ## Usage
 
