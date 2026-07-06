@@ -38,6 +38,8 @@ Live pages are available via GitHub Pages:
 
 A standalone script-building page for first-year journalism students.
 
+![ScriptBuilder screenshot](screenshots/ScriptBuilder.png)
+
 - Build a formatted script from drag-and-drop shot blocks.
 - Designed for a simple package template with shot descriptions, nat sound, and lower-third details.
 - Includes basic interview cutaway support.
@@ -48,6 +50,8 @@ A standalone script-building page for first-year journalism students.
 ### Visualscript (`Visualscript.html`)
 
 A more advanced visual script builder with unlimited shots and enhanced scripting tags.
+
+![Visualscript screenshot](screenshots/Visualscript.png)
 
 - Standalone HTML page with no local library dependencies.
 - Includes standard shot blocks plus an interview block with multiple cutaways.
@@ -61,6 +65,8 @@ Live demo: https://journalism.cards/visualscript/
 
 ### Grabby (`grabby.html`)
 
+![Grabby screenshot](screenshots/Grabby.png)
+
 A lightweight shot logger and screengrab utility.
 
 - Auto-detect scene changes in a video clip.
@@ -69,6 +75,8 @@ A lightweight shot logger and screengrab utility.
 
 ### Waffle (`waffle.html`)
 
+![Waffle screenshot](screenshots/Waffle.png)
+
 A practice tool for writing, speaking, and timing scripts.
 
 - Run entirely in the browser.
@@ -76,6 +84,8 @@ A practice tool for writing, speaking, and timing scripts.
 - Requires microphone permission for live recording.
 
 ### Risk Assessment (`Risk_Assessment.html`)
+
+![Risk Assessment screenshot](screenshots/RiskAssessment.png)
 
 A location health and safety assessment builder for practical media shoots.
 
