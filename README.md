@@ -15,7 +15,7 @@ A collection of lightweight, standalone HTML tools created for video journalism 
 Live pages are available via GitHub Pages:
 
 - ScriptBuilder: https://digitaldickinson.github.io/VJUtilities/ScriptBuilder.html
-- Visualscript: https://digitaldickinson.github.io/VJUtilities/Visualscript.html
+- Visualscript: https://digitaldickinson.github.io/VJUtilities/visualscript.html
 - Grabby: https://digitaldickinson.github.io/VJUtilities/grabby.html
 - Waffle: https://digitaldickinson.github.io/VJUtilities/waffle.html
 - Risk Assessment: https://digitaldickinson.github.io/VJUtilities/Risk_Assessment.html
