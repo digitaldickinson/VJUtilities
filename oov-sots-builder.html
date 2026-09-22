@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OOV/SOTS Script Builder</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@9.7.1/dist/index.iife.js"></script>
+
+    <style>
+        body { background-color: #f8fafc; font-family: sans-serif; }
+        .drag-source { cursor: grab; transition: transform 0.2s; }
+        .drag-source:active { cursor: grabbing; transform: scale(0.95); }
+        .board-item { cursor: move; transition: all 0.2s; }
+        .board-item:active { transform: scale(0.9); opacity: 0.7; }
+        .drop-zone { transition: all 0.2s; }
+        .drop-zone.drag-over { background-color: #e0e7ff; border-color: #6366f1; transform: scale(1.02); }
+        .drop-indicator-before { box-shadow: inset 0 3px 0 0 #6366f1; }
+        .drop-indicator-after { box-shadow: inset 0 -3px 0 0 #6366f1; }
+        .hidden { display: none !important; }
+
+        /* Button States */
+        .btn-paste { transition: all 0.2s; }
+        .btn-paste:disabled { opacity: 0.3; cursor: not-allowed; background-color: #f1f5f9; color: #94a3b8; }
+        .btn-paste:not(:disabled) { background-color: #e0e7ff; color: #4338ca; cursor: pointer; }
+        .btn-paste:not(:disabled):hover { background-color: #c7d2fe; transform: scale(1.05); }
+
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+        .cutaway-marker { background-color: #ccfbf1; color: #0f766e; border-radius: 2px; padding: 1px 2px; border-bottom: 2px solid #14b8a6; }
+        .cutaway-marker::before { content: "\2702 "; font-weight: bold; }
+
+        /* Error Input */
+        .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+
+        /* Modal Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-modal { animation: fadeIn 0.2s ease-out forwards; }
+
+        /* Preview Table Styles */
+        .preview-table { width: 100%; border-collapse: collapse; font-size: 10px; background: white; table-layout: fixed; }
+        .preview-table th, .preview-table td { border: 1px solid #e2e8f0; padding: 6px; vertical-align: top; text-align: left; overflow-wrap: break-word; }
+        .preview-table th { background: #f8fafc; font-weight: bold; text-transform: uppercase; color: #475569; font-size: 8px; }
+
+        /* Custom Scrollbar for Preview */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* Timing bar */
+        .timing-band { background-color: #d1fae5; }
+        .timing-marker { background-color: #0f172a; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-full mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+                </div>
+                <h1 class="font-bold text-xl tracking-tight text-slate-800">OOV/SOT SCRIPT BUILDER</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="autosaveStatus" class="text-[10px] font-bold uppercase tracking-wide text-slate-400"></span>
+                <button id="helpBtn" onclick="app.showHelp()" class="flex items-center gap-1 text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors px-3 py-2 rounded-lg hover:bg-slate-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                    Help
+                </button>
+                <div class="h-6 w-px bg-slate-200"></div>
+                <button onclick="app.reset()" class="text-sm font-bold text-slate-500 hover:text-red-600 transition-colors">Start New Script</button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="timingBar" class="sticky top-16 z-40 bg-white border-b border-slate-200 px-6 py-2.5 flex items-center gap-4">
+        <div class="text-sm font-bold text-slate-700 whitespace-nowrap">
+            <span id="timingTotal">0</span>s <span class="text-slate-400 font-normal">/ 50s &plusmn;3</span>
+        </div>
+        <div class="flex-grow relative h-2.5 bg-slate-100 rounded-full overflow-hidden max-w-2xl">
+            <div id="timingBand" class="timing-band absolute h-full rounded-full"></div>
+            <div id="timingMarker" class="timing-marker absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-1.5 h-5 rounded-full"></div>
+        </div>
+    </div>
+
+    <main class="max-w-full mx-auto px-6 py-8 space-y-8">
+
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+            <h2 class="text-lg font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Reporter Details
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Reporter Name</label>
+                    <input type="text" id="reporterName" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Enter your name" oninput="app.validate(); app.renderLivePreview();">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Slug</label>
+                    <input type="text" id="slugField" class="w-full p-2 text-sm border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="e.g. Campus Protest OOV/SOT" oninput="app.validate(); app.renderLivePreview();">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-12 gap-6 items-start">
+
+            <div class="lg:col-span-8 flex flex-col gap-6">
+
+                <!-- ON CAM -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <span class="bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded">1</span>
+                            ON CAM
+                        </h2>
+                        <span class="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Presenter to camera</span>
+                    </div>
+                    <textarea id="onCamText" class="w-full h-28 p-3 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-serif resize-none" placeholder="Presenter copy, read to camera..." oninput="app.updateOnCam(this.value)"></textarea>
+                    <div class="text-right text-[10px] font-bold text-slate-400 uppercase mt-1">Word Count: <span id="onCamWordCount">0</span></div>
+                </div>
+
+                <!-- TAKE VO -->
+                <div class="bg-slate-800 text-white rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-32 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
+
+                    <div class="relative z-10 flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold flex items-center gap-2">
+                            <span class="bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded">2</span>
+                            OOV
+                        </h2>
+                        <span class="text-[10px] font-bold uppercase text-slate-300 tracking-wider">Reporter voiceover + shot log</span>
+                    </div>
+
+                    <div class="relative z-10 mb-6">
+                        <h3 class="text-xs font-bold uppercase text-slate-300 mb-2">Click a shot to add it, or drag it to place it precisely...</h3>
+                        <div id="voPalette" class="flex flex-wrap gap-3 p-4 bg-slate-700/50 rounded-xl border border-slate-600 overflow-x-auto" ondragleave="app.dragLeave(event)"></div>
+                    </div>
+
+                    <div class="relative z-10 grid lg:grid-cols-12 gap-6 items-start">
+                        <div class="lg:col-span-4">
+                            <div class="bg-white text-slate-800 rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                                    <h3 class="font-bold text-slate-800 text-sm">OOV Script</h3>
+                                </div>
+                                <textarea id="scriptEdit" class="w-full min-h-[260px] p-4 text-sm font-serif text-slate-700 leading-relaxed border-none outline-none resize-none bg-white" placeholder="Write the reporter's voiceover narration here..." oninput="app.updateScriptData(this.value)"></textarea>
+                                <div class="p-2 border-t border-slate-100 text-right text-[10px] font-bold text-slate-400 uppercase">
+                                    Word Count: <span id="scriptWordCount">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-8 flex flex-col gap-4">
+                            <h3 class="text-xs font-bold uppercase text-slate-300 -mb-2">...to log shots under the VO (drag to reorder)</h3>
+                            <div id="voDropZone" class="drop-zone flex flex-col gap-4 min-h-[140px] p-3 rounded-2xl border-2 border-dashed border-slate-600" ondragover="app.allowDrop(event)" ondrop="app.drop(event)" ondragleave="app.dragLeave(event)">
+                                <div id="voSequenceInputs" class="flex flex-col gap-4"></div>
+                                <div id="voEmptyState" class="bg-slate-700/20 rounded-xl p-8 text-center text-slate-400 text-sm">
+                                    No shots logged yet. Drag a shot from the palette above and drop it here.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="oovCoverageIndicator" class="relative z-10 mt-4 text-xs font-bold px-4 py-2.5 rounded-lg flex flex-wrap items-center gap-x-2 gap-y-1"></div>
+                </div>
+
+                <!-- TAKE SOT -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <span class="bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded">3</span>
+                            TAKE SOT
+                        </h2>
+                       </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Name</label>
+                            <input type="text" id="sotName" class="w-full p-2 text-sm border border-slate-300 rounded outline-none focus:ring-2 focus:ring-indigo-500" oninput="app.updateSotField('name', this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Title</label>
+                            <input type="text" id="sotTitle" class="w-full p-2 text-sm border border-slate-300 rounded outline-none focus:ring-2 focus:ring-indigo-500" oninput="app.updateSotField('title', this.value)">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-500 uppercase">Full Transcript</label>
+                            <button id="toggleTranscriptBtn" onclick="app.toggleTranscriptMode()" class="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors cursor-pointer uppercase">Done</button>
+                        </div>
+                        <div class="relative min-h-[140px] border border-slate-200 rounded-lg overflow-hidden">
+                            <div id="sotTranscriptView" class="hidden w-full h-full p-3 text-sm font-serif text-slate-700 leading-relaxed whitespace-pre-wrap overflow-y-auto absolute inset-0 min-h-[140px] cursor-text" onmouseup="app.handleTranscriptSelection()"></div>
+                            <textarea id="sotTranscriptEdit" class="w-full h-full min-h-[140px] p-3 text-sm font-serif text-slate-700 leading-relaxed border-none outline-none resize-none absolute inset-0 bg-white" placeholder="Paste the soundbite exactly as spoken. No punctuation/filler cleanup &mdash; a messy transcript stays messy." oninput="app.onTranscriptInput(this.value)" onselect="app.handleTranscriptEditSelection()" onmouseup="app.handleTranscriptEditSelection()" onkeyup="app.handleTranscriptEditSelection()"></textarea>
+                        </div>
+                          </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">In Words</label>
+                            <input type="text" id="sotInWords" class="w-full p-2 text-sm border border-slate-300 rounded outline-none focus:ring-2 focus:ring-indigo-500 font-serif italic" oninput="app.updateInWords(this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Out Words</label>
+                            <input type="text" id="sotOutWords" class="w-full p-2 text-sm border border-slate-300 rounded outline-none focus:ring-2 focus:ring-indigo-500 font-serif italic" oninput="app.updateOutWords(this.value)">
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 -mt-3 mb-4">Auto-extracted from the transcript. Edit freely to nudge off a comma &mdash; your edit will stick even as the transcript changes.</p>
+
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Runs=</label>
+                        <input type="number" min="0" step="0.5" id="sotRuns" class="w-32 p-2 text-sm border border-slate-300 rounded outline-none focus:ring-2 focus:ring-indigo-500 font-bold" placeholder="0" oninput="app.updateSotField('runs', this.value)">
+                        <span class="text-xs text-slate-400 ml-2">Runs= (actual clip length, as timed by you). Never word-count-estimated &mdash; this is real footage.</span>
+                    </div>
+
+                    <!-- Mid-interview cutaways -->
+                    <div class="mb-6 border-t border-slate-100 pt-4">
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-1">Mid-Interview Cutaways</h3>
+                        <p class="text-[10px] text-slate-400 mb-2">Select a span of the transcript above &mdash; either while editing it, or after clicking "Done" to view it &mdash; then hit "Mark Selection as Cutaway" below. A cutaway is a visual cut-away while the same continuous audio keeps running underneath.</p>
+                        <div class="flex items-center gap-3 mb-2">
+                            <button id="markCutawayBtn" onclick="app.markCutaway()" class="btn-paste text-xs font-bold px-3 py-1.5 rounded" disabled>Mark Selection as Cutaway</button>
+                            <span id="cutawaySelectionLabel" class="text-[10px] text-slate-400 italic"></span>
+                        </div>
+                        <div id="cutawayError" class="hidden text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded mb-2"></div>
+                        <div id="cutawaysList" class="flex flex-col gap-3"></div>
+                    </div>
+
+                    <!-- Ending technique -->
+                    <div class="border-t border-slate-100 pt-4">
+                        <h3 class="text-xs font-bold uppercase text-slate-500 mb-2">Ending Technique</h3>
+                        <div class="flex gap-2 mb-3" id="endingButtons">
+                            <button onclick="app.setEnding('hold')" data-ending="hold" class="ending-btn text-xs font-bold px-4 py-2 rounded-lg border-2 border-slate-200 text-slate-600 hover:border-indigo-300">Hold</button>
+                            <button onclick="app.setEnding('dip')" data-ending="dip" class="ending-btn text-xs font-bold px-4 py-2 rounded-lg border-2 border-slate-200 text-slate-600 hover:border-indigo-300">Dip &amp; Goldfish</button>
+                            <button onclick="app.setEnding('cutaway')" data-ending="cutaway" class="ending-btn text-xs font-bold px-4 py-2 rounded-lg border-2 border-slate-200 text-slate-600 hover:border-indigo-300">Cutaway</button>
+                        </div>
+                        <div id="endingCutawayFields" class="hidden bg-teal-50 border border-teal-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-teal-700 uppercase mb-1">Shot Type</label>
+                                <select id="endingCutawayShotType" class="w-full p-2 text-xs border border-teal-200 rounded" onchange="app.updateEndingCutaway('shotType', this.value)"></select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-teal-700 uppercase mb-1">Visual Description</label>
+                                <input type="text" id="endingCutawayDesc" class="w-full p-2 text-xs border border-teal-200 rounded" oninput="app.updateEndingCutaway('desc', this.value)">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-teal-700 uppercase mb-1">NAT Sound</label>
+                                <input type="text" id="endingCutawayNat" class="w-full p-2 text-xs border border-teal-200 rounded" oninput="app.updateEndingCutaway('nat', this.value)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="lg:col-span-4 h-fit sticky top-32">
+                <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col h-[calc(100vh-180px)]">
+                    <div class="p-4 bg-slate-900 text-white flex justify-between items-center">
+                        <h3 class="font-bold text-sm flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            Script Preview
+                        </h3>
+                        <div class="text-right">
+                            <div class="text-[9px] font-bold opacity-50 uppercase tracking-widest leading-none mb-1">Total</div>
+                            <div class="text-xl font-bold leading-none text-white">~<span id="previewTotalTime">0</span>s</div>
+                        </div>
+                    </div>
+                    <div id="livePreview" class="p-3 overflow-y-auto flex-grow bg-white custom-scroll"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="flex flex-col items-center gap-4 pb-12 pt-4">
+            <div id="errorMsg" class="hidden text-center text-red-600 text-sm font-bold bg-red-50 border border-red-200 px-6 py-3 rounded-lg shadow-sm animate-pulse"></div>
+            <div class="flex gap-4">
+                <button id="btnDoc" onclick="app.exportDoc()" disabled class="btn-disabled bg-green-700 hover:bg-green-800 text-white shadow-lg shadow-green-900/20 px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all">
+                    Export Script (.docx)
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="helpModal" class="hidden fixed inset-0 bg-slate-900/50 z-[60] flex items-center justify-center backdrop-blur-sm" onclick="if(event.target === this) app.closeHelp()">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden animate-modal">
+            <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800">How to use the OOV/SOTS Builder</h3>
+                <button onclick="app.closeHelp()" class="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-5 text-slate-600 text-sm leading-relaxed overflow-y-auto max-h-[70vh]">
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">1</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">The Fixed Shape</strong>
+                        OOV/SOTS is a fixed building block: <strong>ON CAM</strong> (presenter reads to camera) &rarr; <strong>TAKE VO</strong> (reporter voiceover with shots logged against it) &rarr; <strong>TAKE SOT</strong> (one clean soundbite) &rarr; <strong>Out</strong>. There's no return to script &mdash; no OOV-SOT-OOV.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">2</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">Shot Logging (TAKE VO)</strong>
+                        Write the reporter's voiceover narration in the VO Script box, then drag shots onto the board below it to log what's on screen while it plays. Each shot gets a visual description, optional NAT sound, and a duration in seconds that you set by eye &mdash; no scripting or tags needed per shot.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">3</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">The Lower-Third Is Already Burnt In</strong>
+                        Name/Title on the SOT are a record of what's already on the tape, not an instruction to graphics. Students deliver OOV/SOT footage as a single file with the lower-third burnt in.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">4</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">Two Different Cutaways</strong>
+                        The <strong>ending Cutaway</strong> is what the piece resolves <em>to</em> once the SOT finishes. A <strong>mid-interview cutaway</strong> is a visual cut-away <em>during</em> the soundbite &mdash; audio keeps running continuously under it. Mark one by viewing the transcript and selecting a span of text.
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <div class="font-bold text-indigo-600 text-lg">5</div>
+                    <div>
+                        <strong class="text-slate-800 block mb-1">The 50&plusmn;3 Timing Rule</strong>
+                        ON CAM is estimated from word count &divide; 3, since there's no picture to time it against. The OOV segment uses whichever is longer of the shots you've logged or the script's word-count estimate &mdash; a reporter can't read faster than the words take, so if your shots run short of the script, the segment still can't be shorter than the read. The SOT's Runs= is manually timed by you, because spontaneous speech doesn't pace like scripted delivery. Real newsroom arithmetic, not a guess.
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-slate-50 border-t border-slate-100 text-right">
+                <button onclick="app.closeHelp()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-indigo-700 transition-colors shadow-sm">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TARGET_SECONDS = 50;
+        const TOLERANCE_SECONDS = 3;
+        const DRAFT_STORAGE_KEY = 'oovSotsDraft_v1';
+        const AUTOSAVE_INTERVAL_MS = 4000;
+
+        const ICONS = {
+            wide: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>',
+            medium: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+            closeup: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+            unusual: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+            library: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13 5 3-5 3v-6z"/></svg>',
+            graphic: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" ry="2" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>'
+        };
+
+        const SHOT_TYPES = [
+            { id: 'wide', label: 'Wide Shot', short: 'WS', desc: 'Sets the scene.', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+            { id: 'medium', label: 'Medium Shot', short: 'MS', desc: 'Places the subject in context.', color: 'bg-green-100 text-green-700 border-green-200' },
+            { id: 'closeup', label: 'Close-Up', short: 'CU', desc: 'Emphasises detail.', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+            { id: 'unusual', label: 'Unusual Angle', short: 'UA', desc: 'POV, low or high angle etc.', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+            { id: 'library', label: 'Library', short: 'Lib', desc: 'Archive or third party content.', color: 'bg-pink-100 text-pink-700 border-pink-200' },
+            { id: 'graphic', label: 'Graphic', short: 'Gfx', desc: 'Full screen.', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' }
+        ];
+
+        const app = {
+            vo: { sequence: [] },
+            addAfterIndex: null,
+            scriptContent: "",
+            onCam: "",
+
+            sot: {
+                name: '', title: '',
+                transcript: '',
+                inWords: '', outWords: '',
+                autoIn: '', autoOut: '',
+                runs: '',
+                ending: '',
+                endingCutaway: { shotType: 'wide', desc: '', nat: '' },
+                cutaways: [],
+                transcriptEditMode: true,
+                pendingSelection: null
+            },
+
+            init() {
+                this.renderPalette();
+                this.renderVOInputs();
+                document.getElementById('endingCutawayShotType').innerHTML = SHOT_TYPES.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+                this.updateCalculations();
+                this.renderLivePreview();
+                this.validate();
+                this.loadDraftIfAny();
+                setInterval(() => this.saveDraft(), AUTOSAVE_INTERVAL_MS);
+            },
+
+            showHelp() { document.getElementById('helpModal').classList.remove('hidden'); },
+            closeHelp() { document.getElementById('helpModal').classList.add('hidden'); },
+
+            // ---------- Draft autosave/recovery ----------
+            // Periodically snapshots everything to localStorage so an accidental refresh or closed
+            // tab doesn't lose a student's transcription/logging work.
+            saveDraft() {
+                try {
+                    const data = {
+                        savedAt: Date.now(),
+                        reporterName: document.getElementById('reporterName').value,
+                        slug: document.getElementById('slugField').value,
+                        onCam: this.onCam,
+                        scriptContent: this.scriptContent,
+                        voSequence: this.vo.sequence,
+                        sot: {
+                            name: this.sot.name, title: this.sot.title, transcript: this.sot.transcript,
+                            inWords: this.sot.inWords, outWords: this.sot.outWords, autoIn: this.sot.autoIn, autoOut: this.sot.autoOut,
+                            runs: this.sot.runs, ending: this.sot.ending, endingCutaway: this.sot.endingCutaway, cutaways: this.sot.cutaways,
+                        },
+                    };
+                    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data));
+                    this.setAutosaveStatus(true);
+                } catch (e) {
+                    // localStorage unavailable (private mode, quota exceeded, disabled, etc.) — surface
+                    // this rather than failing silently, since it means work genuinely isn't being saved.
+                    this.setAutosaveStatus(false);
+                }
+            },
+
+            setAutosaveStatus(ok) {
+                const el = document.getElementById('autosaveStatus');
+                if (!el) return;
+                if (ok) {
+                    el.className = 'text-[10px] font-bold uppercase tracking-wide text-slate-400';
+                    el.innerText = `Draft saved ${new Date().toLocaleTimeString()}`;
+                } else {
+                    el.className = 'text-[10px] font-bold uppercase tracking-wide text-red-600';
+                    el.innerText = 'Autosave failed — export your work often';
+                }
+            },
+
+            clearDraft() {
+                try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (e) { /* ignore */ }
+                const el = document.getElementById('autosaveStatus');
+                if (el) { el.innerText = ''; el.className = 'text-[10px] font-bold uppercase tracking-wide text-slate-400'; }
+            },
+
+            loadDraftIfAny() {
+                let data;
+                try {
+                    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+                    if (!raw) return;
+                    data = JSON.parse(raw);
+                } catch (e) { return; }
+                if (!data) return;
+                const hasContent = (data.onCam || '').trim() || (data.scriptContent || '').trim() || (data.voSequence || []).length || ((data.sot && data.sot.transcript) || '').trim();
+                if (!hasContent) return;
+                const when = data.savedAt ? new Date(data.savedAt).toLocaleString() : 'earlier';
+                if (!confirm(`Restore your unsaved draft from ${when}?`)) { this.clearDraft(); return; }
+
+                document.getElementById('reporterName').value = data.reporterName || '';
+                document.getElementById('slugField').value = data.slug || '';
+                this.onCam = data.onCam || '';
+                document.getElementById('onCamText').value = this.onCam;
+                document.getElementById('onCamWordCount').innerText = this.countWords(this.onCam);
+                this.scriptContent = data.scriptContent || '';
+                document.getElementById('scriptEdit').value = this.scriptContent;
+                document.getElementById('scriptWordCount').innerText = this.countWords(this.scriptContent);
+                this.vo.sequence = data.voSequence || [];
+                Object.assign(this.sot, data.sot || {});
+
+                document.getElementById('sotName').value = this.sot.name || '';
+                document.getElementById('sotTitle').value = this.sot.title || '';
+                document.getElementById('sotTranscriptEdit').value = this.sot.transcript || '';
+                document.getElementById('sotInWords').value = this.sot.inWords || '';
+                document.getElementById('sotOutWords').value = this.sot.outWords || '';
+                document.getElementById('sotRuns').value = this.sot.runs || '';
+                document.getElementById('endingCutawayShotType').value = this.sot.endingCutaway?.shotType || 'wide';
+                document.getElementById('endingCutawayDesc').value = this.sot.endingCutaway?.desc || '';
+                document.getElementById('endingCutawayNat').value = this.sot.endingCutaway?.nat || '';
+
+                this.renderVOInputs();
+                this.renderCutawaysList();
+                if (this.sot.ending) this.setEnding(this.sot.ending);
+                this.updateCalculations();
+                this.renderLivePreview();
+                this.validate();
+            },
+
+            // ---------- Helpers ----------
+            countWords(str) { return str ? str.trim().split(/\s+/).filter(w => w.length > 0).length : 0; },
+            escapeHtml(text) { return (text || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); },
+
+            // Strips characters illegal in Windows/macOS/Linux filenames (< > : " / \ | ? * and control
+            // chars), collapses whitespace to underscores, and trims trailing dots/spaces Windows rejects.
+            sanitizeFilename(str) {
+                const cleaned = (str || '')
+                    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '')
+                    .trim()
+                    .replace(/\s+/g, '_')
+                    .replace(/^\.+|[.\s]+$/g, '');
+                return cleaned;
+            },
+
+            // ---------- ON CAM ----------
+            updateOnCam(val) {
+                this.onCam = val;
+                document.getElementById('onCamWordCount').innerText = this.countWords(val);
+                this.updateCalculations();
+                this.renderLivePreview();
+                this.validate();
+            },
+
+            // ---------- TAKE VO palette / board ----------
+            renderPalette() {
+                document.getElementById('voPalette').innerHTML = SHOT_TYPES.map(type => `
+                    <div class="drag-source flex flex-col items-center justify-center p-3 rounded-xl border-2 shadow-sm ${type.color} h-28 w-28 select-none flex-shrink-0 cursor-pointer"
+                         draggable="true" ondragstart="app.dragStartPalette(event, '${type.id}')" onclick="app.addBlock('${type.id}')" title="Click to add to the end, or drag to place it precisely">
+                        <div class="mb-1 transform scale-75">${ICONS[type.id]}</div>
+                        <div class="font-bold text-[10px] text-center uppercase">${type.label}</div>
+                        <div class="text-[9px] mt-1 opacity-75 text-center leading-tight px-1">${type.desc}</div>
+                    </div>
+                `).join('');
+            },
+
+            dragStartPalette(ev, id) { ev.dataTransfer.setData("type", "palette"); ev.dataTransfer.setData("shotId", id); },
+            dragStartBoard(ev, idx) { ev.dataTransfer.setData("type", "board"); ev.dataTransfer.setData("fromIdx", idx); },
+            allowDrop(ev) { ev.preventDefault(); ev.currentTarget.classList.add('drag-over'); },
+            // Shows a precise line at the top or bottom edge of the hovered card, based on which half
+            // of the card the cursor is over, so it's clear whether the drop will land before or after it.
+            allowDropOnCard(ev) {
+                ev.preventDefault();
+                const card = ev.currentTarget;
+                const rect = card.getBoundingClientRect();
+                const isAfter = (ev.clientY - rect.top) > rect.height / 2;
+                card.classList.toggle('drop-indicator-before', !isAfter);
+                card.classList.toggle('drop-indicator-after', isAfter);
+            },
+            dragLeave(ev) {
+                if (ev.currentTarget.id === 'voDropZone' || ev.currentTarget.classList.contains('board-item')) {
+                    ev.currentTarget.classList.remove('drag-over', 'drop-indicator-before', 'drop-indicator-after');
+                }
+            },
+            drop(ev) {
+                ev.preventDefault(); const type = ev.dataTransfer.getData("type"); document.getElementById('voDropZone').classList.remove('drag-over');
+                if (type === "palette") this.addBlock(ev.dataTransfer.getData("shotId"));
+                if (type === "board") this.moveBlockTo(parseInt(ev.dataTransfer.getData("fromIdx")), this.vo.sequence.length - 1);
+            },
+            dropOnItem(ev, targetIdx) {
+                ev.preventDefault(); ev.stopPropagation(); const type = ev.dataTransfer.getData("type");
+                const rect = ev.currentTarget.getBoundingClientRect();
+                const isAfter = (ev.clientY - rect.top) > rect.height / 2;
+                const insertIdx = isAfter ? targetIdx + 1 : targetIdx;
+                document.getElementById('voDropZone').classList.remove('drag-over');
+                // Each branch below re-renders the board itself, which discards the hovered card
+                // (and its indicator classes) along with everything else — nothing more to clean up here.
+                if (type === "palette") {
+                    this.addBlockAt(ev.dataTransfer.getData("shotId"), insertIdx);
+                } else if (type === "board") {
+                    const fromIdx = parseInt(ev.dataTransfer.getData("fromIdx"));
+                    const adjustedInsertIdx = fromIdx < insertIdx ? insertIdx - 1 : insertIdx;
+                    this.moveBlockTo(fromIdx, adjustedInsertIdx);
+                }
+            },
+
+            addBlock(id) {
+                if (!id) return;
+                this.vo.sequence.push({ type: id, data: { desc: '', nat: '', duration: '', isOverlay: false, overlayText: '', attribution: '' } });
+                this.renderVOInputs(); this.validate();
+            },
+            addBlockAt(id, targetIdx) {
+                if (!id) return;
+                this.vo.sequence.splice(targetIdx, 0, { type: id, data: { desc: '', nat: '', duration: '', isOverlay: false, overlayText: '', attribution: '' } });
+                this.renderVOInputs(); this.validate();
+            },
+            // Lets a student add a shot right after a specific one without dragging: click "+" on a
+            // card to reveal an inline shot-type picker, then pick the type to insert there.
+            toggleAddAfter(idx) {
+                this.addAfterIndex = (this.addAfterIndex === idx) ? null : idx;
+                this.renderVOInputs();
+            },
+            addShotAfter(idx, typeId) {
+                this.addAfterIndex = null;
+                this.addBlockAt(typeId, idx + 1);
+            },
+            moveBlock(idx, direction) { this.moveBlockTo(idx, idx + direction); },
+            moveBlockTo(fromIdx, toIdx) {
+                if (fromIdx === toIdx || isNaN(fromIdx) || toIdx < 0 || toIdx >= this.vo.sequence.length) return;
+                const item = this.vo.sequence.splice(fromIdx, 1)[0];
+                this.vo.sequence.splice(toIdx, 0, item);
+                this.renderVOInputs();
+            },
+            removeBlock(idx) { if (confirm("Delete shot?")) { this.vo.sequence.splice(idx, 1); this.renderVOInputs(); this.validate(); } },
+
+            renderVOInputs() {
+                const container = document.getElementById('voSequenceInputs');
+                const empty = document.getElementById('voEmptyState');
+                if (this.vo.sequence.length === 0) {
+                    container.innerHTML = ''; empty.classList.remove('hidden');
+                    this.updateCalculations(); this.renderLivePreview(); return;
+                }
+                empty.classList.add('hidden');
+                container.innerHTML = this.vo.sequence.map((item, idx) => {
+                    let html = this.getShotCardHtml(item, idx);
+                    if (this.addAfterIndex === idx) html += this.getAddAfterPickerHtml(idx);
+                    return html;
+                }).join('');
+                this.updateCalculations();
+                this.renderLivePreview();
+            },
+
+            getAddAfterPickerHtml(idx) {
+                return `
+                    <div class="bg-indigo-50 border-2 border-dashed border-indigo-300 rounded-xl p-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-bold uppercase text-indigo-600">Add shot after Shot ${idx + 1}</span>
+                            <button onclick="app.toggleAddAfter(${idx})" class="text-indigo-400 hover:text-red-500 text-xs">&#10005;</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            ${SHOT_TYPES.map(t => `
+                                <button onclick="app.addShotAfter(${idx}, '${t.id}')" class="flex flex-col items-center justify-center p-2 rounded-lg border ${t.color} w-16 h-16 hover:scale-105 transition-transform" title="${t.label}">
+                                    <div class="transform scale-50">${ICONS[t.id]}</div>
+                                    <div class="text-[8px] font-bold uppercase mt-0.5">${t.short}</div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            },
+
+            getShotCardHtml(item, idx) {
+                const type = SHOT_TYPES.find(t => t.id === item.type);
+                const isGraphic = item.type === 'graphic';
+                const supportsOverlay = ['wide', 'medium', 'closeup', 'unusual'].includes(item.type);
+
+                return `
+                    <div class="board-item bg-white text-slate-800 rounded-xl border border-indigo-100 shadow-sm overflow-hidden flex flex-col transition-all hover:shadow-md"
+                         ondragover="app.allowDropOnCard(event)" ondrop="app.dropOnItem(event, ${idx})" ondragleave="app.dragLeave(event)">
+                        <div draggable="true" ondragstart="app.dragStartBoard(event, ${idx})" class="px-4 py-3 border-b flex justify-between items-center bg-opacity-30 ${type.color.replace('text-', 'bg-').split(' ')[0]} cursor-grab active:cursor-grabbing select-none" title="Drag to reorder">
+                            <div class="flex items-center gap-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400 flex-shrink-0"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+                                <div class="font-bold text-xs uppercase text-slate-600">Shot ${idx+1}: ${type.label}</div>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick="app.moveBlock(${idx}, -1)" class="p-1 text-slate-400 disabled:opacity-20" ${idx === 0 ? 'disabled' : ''}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                                </button>
+                                <button onclick="app.moveBlock(${idx}, 1)" class="p-1 text-slate-400 disabled:opacity-20" ${idx === this.vo.sequence.length - 1 ? 'disabled' : ''}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+                                <button onclick="app.removeBlock(${idx})" class="p-1 text-slate-400 hover:text-red-500">&#10005;</button>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            <div class="flex gap-4">
+                                <textarea oninput="app.updateShotData(${idx}, 'desc', this.value)" class="flex-grow text-sm p-2 border border-slate-100 rounded bg-slate-50 focus:bg-white outline-none h-14 resize-none" placeholder="Visual description...">${this.escapeHtml(item.data.desc || "")}</textarea>
+                                <div class="flex flex-col gap-2 min-w-[120px]">
+                                    ${supportsOverlay ? `<label class="flex items-center gap-2 cursor-pointer group"><input type="checkbox" class="w-4 h-4 rounded text-amber-600" onchange="app.updateShotData(${idx}, 'isOverlay', this.checked); app.renderVOInputs();" ${item.data.isOverlay ? 'checked' : ''}><span class="text-[10px] font-bold text-slate-400 uppercase group-hover:text-amber-600">Overlay Gfx</span></label>` : ''}
+                                </div>
+                            </div>
+                            ${(supportsOverlay && item.data.isOverlay) ? `<div class="flex flex-col gap-1 border-b border-amber-50 pb-2"><span class="text-[10px] font-bold text-amber-600 uppercase">Overlay Gfx</span><textarea oninput="app.updateShotData(${idx}, 'overlayText', this.value)" class="w-full text-xs p-1.5 border border-amber-100 bg-amber-50/20 rounded resize-y min-h-[60px]" placeholder="GFX Details (one per line)...">${this.escapeHtml(item.data.overlayText || '')}</textarea></div>` : ''}
+                            ${!isGraphic ? `<div class="flex gap-2 items-center border-b border-slate-50 pb-2"><span class="text-[10px] font-bold text-slate-400 uppercase">NAT Sound</span><input type="text" oninput="app.updateShotData(${idx}, 'nat', this.value)" class="w-full text-xs p-1.5 border border-slate-100 rounded" placeholder="NAT Details..." value="${this.escapeHtml(item.data.nat || '')}"></div>` : ''}
+                            ${item.type === 'library' ? `<div class="flex gap-2 items-center mt-2 pb-2 border-b border-slate-50"><span class="text-[10px] font-bold text-slate-400 uppercase">Credit</span><input type="text" oninput="app.updateShotData(${idx}, 'attribution', this.value)" class="w-full text-xs p-1.5 border border-pink-100 bg-pink-50/20 rounded" placeholder="Source credit..." value="${this.escapeHtml(item.data.attribution || '')}"></div>` : ''}
+                            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-50">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Duration</span>
+                                <input type="number" min="0" step="0.5" oninput="app.updateShotData(${idx}, 'duration', this.value)" class="w-16 text-xs p-1.5 border border-slate-200 rounded text-center font-bold" placeholder="0" value="${this.escapeHtml(item.data.duration || '')}">
+                                <span class="text-[10px] font-bold text-slate-400">s</span>
+                            </div>
+                        </div>
+                        <button onclick="app.toggleAddAfter(${idx})" class="w-full text-[10px] font-bold uppercase text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 py-1.5 border-t border-slate-100 transition-colors">+ Add Shot Here</button>
+                    </div>`;
+            },
+
+            updateShotData(idx, field, val) {
+                this.vo.sequence[idx].data[field] = val; this.updateCalculations();
+                if (field === 'isOverlay') this.renderVOInputs();
+                else this.renderLivePreview();
+                this.validate();
+            },
+
+            updateScriptData(val) { this.scriptContent = val; document.getElementById('scriptWordCount').innerText = this.countWords(val); this.updateCalculations(); this.renderLivePreview(); this.validate(); },
+
+            // ---------- TAKE SOT fields ----------
+            updateSotField(field, val) { this.sot[field] = val; this.updateCalculations(); this.renderLivePreview(); this.validate(); },
+
+            computeAutoInOut(text) {
+                const words = (text || '').trim().split(/\s+/).filter(w => w.length > 0);
+                if (words.length === 0) return { inW: '', outW: '' };
+                let count = Math.min(7, words.length);
+                if (words.length < count * 2) count = Math.max(1, Math.floor(words.length / 2));
+                return { inW: words.slice(0, count).join(' ') + '...', outW: '...' + words.slice(words.length - count).join(' ') };
+            },
+
+            onTranscriptInput(val) {
+                const oldTranscript = this.sot.transcript;
+                const droppedCutaways = this.remapCutawaysForEdit(oldTranscript, val);
+                this.sot.transcript = val;
+                // A selection made before this edit has no repair mechanism (unlike confirmed cutaways) —
+                // its offsets would silently point at the wrong words, so drop it and let the student re-select.
+                this.sot.pendingSelection = null;
+                this.updateMarkCutawayBtn();
+                const { inW, outW } = this.computeAutoInOut(val);
+                if (this.sot.inWords === this.sot.autoIn) { this.sot.inWords = inW; const el = document.getElementById('sotInWords'); if (el) el.value = inW; }
+                if (this.sot.outWords === this.sot.autoOut) { this.sot.outWords = outW; const el = document.getElementById('sotOutWords'); if (el) el.value = outW; }
+                this.sot.autoIn = inW; this.sot.autoOut = outW;
+                if (!this.sot.transcriptEditMode) this.renderTranscriptView();
+                this.renderCutawaysList();
+                if (droppedCutaways > 0) {
+                    const errBox = document.getElementById('cutawayError');
+                    if (errBox) {
+                        errBox.innerText = `${droppedCutaways} cutaway${droppedCutaways > 1 ? 's were' : ' was'} removed because the marked text was edited. Re-mark it if it's still needed.`;
+                        errBox.classList.remove('hidden');
+                    }
+                }
+                this.updateCalculations(); this.renderLivePreview(); this.validate();
+            },
+
+            // Keeps mid-interview cutaway offsets pointing at the right words after the transcript is
+            // edited: shifts offsets for edits that land entirely before/after a cutaway, and drops any
+            // cutaway whose marked span the edit actually touched (its old text no longer applies).
+            // Returns how many cutaways were dropped.
+            remapCutawaysForEdit(oldText, newText) {
+                if (oldText === newText || this.sot.cutaways.length === 0) return 0;
+                let prefixLen = 0;
+                const minLen = Math.min(oldText.length, newText.length);
+                while (prefixLen < minLen && oldText[prefixLen] === newText[prefixLen]) prefixLen++;
+                let suffixLen = 0;
+                while (suffixLen < (minLen - prefixLen) && oldText[oldText.length - 1 - suffixLen] === newText[newText.length - 1 - suffixLen]) suffixLen++;
+                const oldEditEnd = oldText.length - suffixLen;
+                const newEditEnd = newText.length - suffixLen;
+                const delta = newEditEnd - oldEditEnd;
+
+                let dropped = 0;
+                this.sot.cutaways = this.sot.cutaways.filter(c => {
+                    if (c.end <= prefixLen) return true; // entirely before the edit — unaffected
+                    if (c.start >= oldEditEnd) { c.start += delta; c.end += delta; return true; } // entirely after — shift
+                    dropped++;
+                    return false; // the edit overlaps this cutaway's marked span — can't trust it anymore
+                });
+                return dropped;
+            },
+            updateInWords(val) { this.sot.inWords = val; this.renderLivePreview(); this.validate(); },
+            updateOutWords(val) { this.sot.outWords = val; this.renderLivePreview(); this.validate(); },
+
+            toggleTranscriptMode() {
+                this.sot.transcriptEditMode = !this.sot.transcriptEditMode;
+                const btn = document.getElementById('toggleTranscriptBtn');
+                if (this.sot.transcriptEditMode) { btn.innerText = 'Done'; btn.classList.replace('bg-indigo-100', 'bg-green-100'); btn.classList.replace('text-indigo-700', 'text-green-700'); document.getElementById('sotTranscriptView').classList.add('hidden'); document.getElementById('sotTranscriptEdit').classList.remove('hidden'); document.getElementById('sotTranscriptEdit').value = this.sot.transcript; }
+                else { btn.innerText = 'Edit'; btn.classList.replace('bg-green-100', 'bg-indigo-100'); btn.classList.replace('text-green-700', 'text-indigo-700'); document.getElementById('sotTranscriptEdit').classList.add('hidden'); document.getElementById('sotTranscriptView').classList.remove('hidden'); this.renderTranscriptView(); }
+                this.sot.pendingSelection = null; this.updateMarkCutawayBtn();
+            },
+
+            renderTranscriptView() {
+                const text = this.sot.transcript || '';
+                const container = document.getElementById('sotTranscriptView');
+                if (!text) { container.innerHTML = '<span class="text-slate-400 italic">No transcript...</span>'; return; }
+                const cutaways = this.sot.cutaways;
+                let html = ''; let pos = 0;
+                cutaways.forEach(c => {
+                    if (c.start > pos) html += this.escapeHtml(text.slice(pos, c.start));
+                    html += `<span class="cutaway-marker">${this.escapeHtml(text.slice(c.start, c.end))}</span>`;
+                    pos = c.end;
+                });
+                if (pos < text.length) html += this.escapeHtml(text.slice(pos));
+                container.innerHTML = html;
+            },
+
+            getTextOffsetWithin(container, node, nodeOffset) {
+                let offset = 0;
+                const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+                let n;
+                while ((n = walker.nextNode())) {
+                    if (n === node) return offset + nodeOffset;
+                    offset += n.textContent.length;
+                }
+                return offset;
+            },
+
+            handleTranscriptSelection() {
+                if (this.sot.transcriptEditMode) return;
+                const sel = window.getSelection();
+                if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+                const text = sel.toString();
+                if (!text.trim()) return;
+                const range = sel.getRangeAt(0);
+                const container = document.getElementById('sotTranscriptView');
+                let start = this.getTextOffsetWithin(container, range.startContainer, range.startOffset);
+                let end = this.getTextOffsetWithin(container, range.endContainer, range.endOffset);
+                if (start > end) { const tmp = start; start = end; end = tmp; }
+                this.sot.pendingSelection = { start, end, text };
+                this.updateMarkCutawayBtn();
+            },
+
+            // Lets a student select text directly in the editable textarea too, so marking a
+            // cutaway doesn't require first clicking "Done" to switch into the read-only view.
+            handleTranscriptEditSelection() {
+                if (!this.sot.transcriptEditMode) return;
+                const ta = document.getElementById('sotTranscriptEdit');
+                const start = ta.selectionStart, end = ta.selectionEnd;
+                if (end <= start) return;
+                this.sot.pendingSelection = { start, end, text: ta.value.slice(start, end) };
+                this.updateMarkCutawayBtn();
+            },
+
+            updateMarkCutawayBtn() {
+                const btn = document.getElementById('markCutawayBtn');
+                const label = document.getElementById('cutawaySelectionLabel');
+                const has = !!this.sot.pendingSelection;
+                btn.disabled = !has;
+                label.innerText = has ? `Selected: "${this.sot.pendingSelection.text}"` : '';
+            },
+
+            markCutaway() {
+                const sel = this.sot.pendingSelection;
+                const errBox = document.getElementById('cutawayError');
+                errBox.classList.add('hidden');
+                if (!sel) return;
+                const overlap = this.sot.cutaways.some(c => !(sel.end <= c.start || sel.start >= c.end));
+                if (overlap) { errBox.innerText = 'That selection overlaps an existing cutaway. Adjust the selection or remove the existing cutaway first.'; errBox.classList.remove('hidden'); return; }
+                const newCutaway = { start: sel.start, end: sel.end, shotType: 'wide', desc: '', nat: '' };
+                let insertAt = this.sot.cutaways.findIndex(c => c.start > sel.start);
+                if (insertAt === -1) insertAt = this.sot.cutaways.length;
+                this.sot.cutaways.splice(insertAt, 0, newCutaway);
+                this.sot.pendingSelection = null;
+                window.getSelection().removeAllRanges();
+                this.updateMarkCutawayBtn();
+                this.renderTranscriptView();
+                this.renderCutawaysList();
+                this.renderLivePreview();
+                this.validate();
+            },
+
+            removeCutaway(idx) {
+                if (!confirm('Remove this cutaway?')) return;
+                this.sot.cutaways.splice(idx, 1);
+                this.renderTranscriptView(); this.renderCutawaysList(); this.renderLivePreview(); this.validate();
+            },
+
+            updateCutawayField(idx, field, val) {
+                this.sot.cutaways[idx][field] = val;
+                this.renderLivePreview();
+                this.validate();
+            },
+
+            renderCutawaysList() {
+                const container = document.getElementById('cutawaysList');
+                if (this.sot.cutaways.length === 0) { container.innerHTML = ''; return; }
+                container.innerHTML = this.sot.cutaways.map((c, idx) => `
+                    <div class="bg-teal-50 border border-teal-200 rounded-lg p-3">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="text-[10px] font-bold uppercase text-teal-700">Cutaway ${idx + 1}</div>
+                            <button onclick="app.removeCutaway(${idx})" class="text-teal-400 hover:text-red-500 text-xs">&#10005;</button>
+                        </div>
+                        <div class="text-xs font-serif italic text-slate-600 mb-2">&ldquo;${this.escapeHtml(c.text !== undefined ? c.text : (this.sot.transcript || '').slice(c.start, c.end))}&rdquo;</div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <select onchange="app.updateCutawayField(${idx}, 'shotType', this.value)" class="text-xs p-1.5 border border-teal-200 rounded">
+                                ${SHOT_TYPES.map(t => `<option value="${t.id}" ${c.shotType === t.id ? 'selected' : ''}>${t.label}</option>`).join('')}
+                            </select>
+                            <input type="text" value="${this.escapeHtml(c.desc || '')}" oninput="app.updateCutawayField(${idx}, 'desc', this.value)" class="text-xs p-1.5 border border-teal-200 rounded" placeholder="Visual description...">
+                            <input type="text" value="${this.escapeHtml(c.nat || '')}" oninput="app.updateCutawayField(${idx}, 'nat', this.value)" class="text-xs p-1.5 border border-teal-200 rounded" placeholder="NAT sound...">
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            getSotSegments() {
+                const text = this.sot.transcript || '';
+                const cutaways = this.sot.cutaways;
+                let segments = []; let pos = 0;
+                cutaways.forEach(c => {
+                    if (c.start > pos) segments.push({ type: 'audio', text: text.slice(pos, c.start) });
+                    segments.push({ type: 'cutaway', text: text.slice(c.start, c.end), shotType: c.shotType, desc: c.desc, nat: c.nat });
+                    pos = c.end;
+                });
+                if (pos < text.length) segments.push({ type: 'audio', text: text.slice(pos) });
+                return segments;
+            },
+
+            setEnding(val) {
+                this.sot.ending = val;
+                document.querySelectorAll('.ending-btn').forEach(btn => {
+                    if (btn.dataset.ending === val) { btn.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-700'); btn.classList.remove('border-slate-200', 'text-slate-600'); }
+                    else { btn.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-700'); btn.classList.add('border-slate-200', 'text-slate-600'); }
+                });
+                document.getElementById('endingCutawayFields').classList.toggle('hidden', val !== 'cutaway');
+                this.renderLivePreview();
+                this.validate();
+            },
+            updateEndingCutaway(field, val) { this.sot.endingCutaway[field] = val; this.renderLivePreview(); this.validate(); },
+
+            // ---------- Timing ----------
+            endingLabel(val) { return val === 'hold' ? 'Hold' : val === 'dip' ? 'Dip & Goldfish' : val === 'cutaway' ? 'Cutaway' : ''; },
+
+            updateCalculations() {
+                const onCamWords = this.countWords(this.onCam);
+                const voWords = this.countWords(this.scriptContent);
+                const runs = Math.max(0, parseFloat(this.sot.runs) || 0);
+                const shotDurSum = this.vo.sequence.reduce((sum, item) => sum + Math.max(0, parseFloat(item.data.duration) || 0), 0);
+                const oovScriptEst = Math.ceil(voWords / 3);
+                // Running time is built from what's actually timed: the ON CAM read, the OOV segment
+                // (whichever is longer of the shots logged or the VO script that has to be read in full —
+                // shots don't shrink a real reporter's read time, they just may not fully cover it), and the SOT.
+                const total = Math.ceil(onCamWords / 3) + Math.max(shotDurSum, oovScriptEst) + runs;
+
+                document.getElementById('timingTotal').innerText = total;
+                document.getElementById('previewTotalTime').innerText = total;
+
+                // Secondary check: does the OOV script's reading time roughly match the shots planned for it?
+                const indicator = document.getElementById('oovCoverageIndicator');
+                if (indicator) {
+                    if (this.vo.sequence.length === 0 && voWords === 0) {
+                        indicator.className = 'relative z-10 mt-4 text-xs font-bold px-4 py-2.5 rounded-lg flex flex-wrap items-center gap-x-2 gap-y-1';
+                        indicator.innerHTML = '';
+                    } else {
+                        const diff = shotDurSum - oovScriptEst;
+                        const hasNatSound = this.vo.sequence.some(item => (item.data.nat || '').trim());
+                        let toneClass, message;
+                        if (Math.abs(diff) <= 2) {
+                            toneClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                            message = 'Shots closely match the script.';
+                        } else if (diff > 4 && !hasNatSound) {
+                            toneClass = 'bg-orange-50 text-orange-700 border border-orange-200';
+                            message = `Shots run ${diff}s longer than the script &mdash; double check this, unless a shot has an important NAT sound moment worth logging.`;
+                        } else if (diff > 0) {
+                            toneClass = 'bg-sky-50 text-sky-700 border border-sky-200';
+                            message = `Shots run ${diff}s longer than the script &mdash; fine if that's pictures breathing, worth a look if not.`;
+                        } else {
+                            toneClass = 'bg-amber-50 text-amber-700 border border-amber-200';
+                            message = `Shots run ${Math.abs(diff)}s short of the script &mdash; check for dead air where there's narration but no picture logged.`;
+                        }
+                        indicator.className = `relative z-10 mt-4 text-xs font-bold px-4 py-2.5 rounded-lg flex flex-wrap items-center gap-x-2 gap-y-1 ${toneClass}`;
+                        indicator.innerHTML = `<span>Script read &asymp;${oovScriptEst}s</span><span class="opacity-50">&middot;</span><span>Shots total ${shotDurSum}s</span><span class="opacity-50">&middot;</span><span class="font-normal">${message}</span>`;
+                    }
+                }
+
+                const scaleMax = Math.max(TARGET_SECONDS * 2, total + 10);
+                const bandLeft = ((TARGET_SECONDS - TOLERANCE_SECONDS) / scaleMax) * 100;
+                const bandWidth = ((TOLERANCE_SECONDS * 2) / scaleMax) * 100;
+                const markerLeft = Math.min(100, (total / scaleMax) * 100);
+                document.getElementById('timingBand').style.left = bandLeft + '%';
+                document.getElementById('timingBand').style.width = bandWidth + '%';
+                document.getElementById('timingMarker').style.left = markerLeft + '%';
+            },
+
+            // ---------- Shared script-row model (used by both live preview and .docx export) ----------
+            // A "row" is [cellA, cellB, cellC, cellD]; a cell is an array of paragraphs;
+            // a paragraph is an array of {text, bold, italic} runs.
+            fmtDur(totalSeconds) {
+                const s = Math.max(0, Math.round(totalSeconds || 0));
+                const m = Math.floor(s / 60); const sec = s % 60;
+                return `${m}:${sec.toString().padStart(2, '0')}`;
+            },
+
+            // Each row is an array of 4 slots. A slot is either:
+            //   { paras, rowSpan } — a real cell (paras = array of paragraphs; paragraph = array of {text,bold,italic} runs)
+            //   null — covered by a rowSpan from the same column in a row above; omit entirely when rendering
+            buildScriptRows() {
+                const R = (text, opts = {}) => ({ text, bold: !!opts.bold, italic: !!opts.italic });
+                const P = (...runs) => runs.length ? runs : [R('')];
+                const cell = (paras, rowSpan = 1) => ({ paras, rowSpan });
+                const rows = [];
+
+                const shotCell = (shotType, desc, nat, extra = {}) => {
+                    const t = SHOT_TYPES.find(s => s.id === shotType);
+                    const paras = [P(R(t?.short || 'Shot'))];
+                    if (extra.isOverlay) paras.push(P(R('[OVERLAY]', { bold: true })));
+                    if (extra.isOverlay && extra.overlayText) paras.push(P(R('GFX: ', { bold: true }), R(extra.overlayText)));
+                    if (desc) paras.push(P(R(desc)));
+                    if (nat) paras.push(P(R('NAT: ' + nat)));
+                    if (extra.attribution) paras.push(P(R('Credit: ' + extra.attribution)));
+                    return paras;
+                };
+
+                // Header
+                rows.push([cell([P()]), cell([P(R('Script', { bold: true }))]), cell([P(R('Shot', { bold: true }))]), cell([P(R('DUR', { bold: true }))])]);
+
+                // ON CAM
+                const onCamDur = this.fmtDur(Math.ceil(this.countWords(this.onCam) / 3));
+                rows.push([
+                    cell([P(R('ON CAM', { bold: true }))]),
+                    cell([P(R(this.onCam || ''))]),
+                    cell([P(R('On Cam'))]),
+                    cell([P(R(onCamDur))]),
+                ]);
+
+                // OOV — the Script cell is merged (rowSpan) down across every shot logged under it,
+                // so the narration text runs alongside the shots rather than repeating per row.
+                const shotCount = this.vo.sequence.length;
+                this.vo.sequence.forEach((item, idx) => {
+                    const shot = shotCell(item.type, item.data.desc, item.data.nat, {
+                        isOverlay: item.data.isOverlay,
+                        overlayText: item.data.overlayText,
+                        attribution: item.type === 'library' ? item.data.attribution : null,
+                    });
+                    const dur = this.fmtDur(parseFloat(item.data.duration) || 0);
+                    if (idx === 0) {
+                        rows.push([
+                            cell([P(R('OOV', { bold: true }))]),
+                            cell([P(R(this.scriptContent || ''))], shotCount),
+                            cell(shot),
+                            cell([P(R(dur))]),
+                        ]);
+                    } else {
+                        rows.push([cell([P()]), null, cell(shot), cell([P(R(dur))])]);
+                    }
+                });
+
+                // SOT
+                const sotLabel = [];
+                sotLabel.push(P(R('SOT', { bold: true })));
+                sotLabel.push(P());
+                if (this.sot.name) sotLabel.push(P(R(this.sot.name)));
+                if (this.sot.title) sotLabel.push(P(R(this.sot.title)));
+                sotLabel.push(P());
+                sotLabel.push(P(R('In words = ', { bold: true }), R(`"${this.sot.inWords || ''}"`)));
+                sotLabel.push(P(R('Out words = ', { bold: true }), R(`"${this.sot.outWords || ''}"`)));
+                sotLabel.push(P());
+                sotLabel.push(P(R('Runs: ', { bold: true }), R(this.fmtDur(parseFloat(this.sot.runs) || 0))));
+                const endingLbl = this.endingLabel(this.sot.ending);
+                if (endingLbl) sotLabel.push(P(R('Ends: ', { bold: true }), R(endingLbl)));
+
+                const segments = this.sot.cutaways.length > 0 ? this.getSotSegments() : [{ type: 'audio', text: this.sot.transcript || '' }];
+                segments.forEach((seg, i) => {
+                    const scriptCellParas = [P(R(seg.text))];
+                    const shotCellParas = seg.type === 'cutaway' ? shotCell(seg.shotType, seg.desc, seg.nat) : [P()];
+                    rows.push([cell(i === 0 ? sotLabel : [P()]), cell(scriptCellParas), cell(shotCellParas), cell([P()])]);
+                });
+
+                // Ending cutaway shot (what the piece resolves to once the SOT finishes)
+                if (this.sot.ending === 'cutaway') {
+                    rows.push([cell([P()]), cell([P()]), cell(shotCell(this.sot.endingCutaway.shotType, this.sot.endingCutaway.desc, this.sot.endingCutaway.nat)), cell([P()])]);
+                }
+
+                return rows;
+            },
+
+            // ---------- Live preview ----------
+            renderLivePreview() {
+                const container = document.getElementById('livePreview');
+                if (!container) return;
+                const reporter = document.getElementById('reporterName')?.value || '';
+                const slug = document.getElementById('slugField')?.value || 'Untitled Script';
+                const rows = this.buildScriptRows();
+
+                const cellToHtml = (paras) => paras.map(runs => {
+                    const html = runs.map(r => {
+                        let t = this.escapeHtml(r.text);
+                        if (r.bold) t = `<strong>${t}</strong>`;
+                        if (r.italic) t = `<em>${t}</em>`;
+                        return t;
+                    }).join('');
+                    return `<div>${html || '&nbsp;'}</div>`;
+                }).join('');
+
+                const rowsHtml = rows.map(cells => `<tr>${cells.filter(c => c !== null).map(c => `<td${c.rowSpan > 1 ? ` rowspan="${c.rowSpan}"` : ''}>${cellToHtml(c.paras)}</td>`).join('')}</tr>`).join('');
+
+                container.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="border-b-2 border-slate-900 pb-2">
+                            <h4 class="text-base font-bold uppercase">${this.escapeHtml(reporter) || '&hellip;'} &mdash; ${this.escapeHtml(slug)}</h4>
+                        </div>
+                        <table class="preview-table">
+                            <colgroup><col style="width:15%"><col style="width:40%"><col style="width:30%"><col style="width:15%"></colgroup>
+                            <tbody>${rowsHtml}</tbody>
+                        </table>
+                    </div>
+                `;
+            },
+
+            // ---------- Validation ----------
+            getValidationIssues() {
+                const missing = [];
+                if (!document.getElementById('reporterName').value.trim()) missing.push("Name");
+                if (!document.getElementById('slugField').value.trim()) missing.push("Slug");
+                if (!this.onCam.trim()) missing.push("ON CAM text");
+                if (this.vo.sequence.length === 0) missing.push("At least one VO shot");
+                if (!this.scriptContent.trim()) missing.push("OOV script");
+                if (this.vo.sequence.some(item => !(item.data.desc || '').trim())) missing.push("Shot description(s)");
+                if (this.vo.sequence.some(item => !(parseFloat(item.data.duration) > 0))) missing.push("Shot duration(s) (must be greater than 0)");
+                if (this.vo.sequence.some(item => item.type === 'library' && !(item.data.attribution || '').trim())) missing.push("Library credit(s)");
+                if (!this.sot.name.trim()) missing.push("SOT contributor name");
+                if (!this.sot.title.trim()) missing.push("SOT contributor title");
+                if (!this.sot.transcript.trim()) missing.push("SOT transcript");
+                if (!this.sot.inWords.trim()) missing.push("In words");
+                if (!this.sot.outWords.trim()) missing.push("Out words");
+                if (!(parseFloat(this.sot.runs) > 0)) missing.push("SOT Runs= (must be greater than 0)");
+                if (this.sot.cutaways.some(c => !(c.desc || '').trim())) missing.push("Cutaway description(s)");
+                if (!this.sot.ending) missing.push("Ending technique");
+                if (this.sot.ending === 'cutaway' && !(this.sot.endingCutaway.desc || '').trim()) missing.push("Ending cutaway description");
+                return missing;
+            },
+
+            validate() {
+                const msg = document.getElementById('errorMsg'); const btnDoc = document.getElementById('btnDoc');
+                const missing = this.getValidationIssues();
+                if (missing.length > 0) { msg.innerText = "Missing: " + missing.join(', '); msg.classList.remove('hidden'); btnDoc.classList.add('btn-disabled'); btnDoc.disabled = true; }
+                else { msg.classList.add('hidden'); btnDoc.classList.remove('btn-disabled'); btnDoc.disabled = false; }
+            },
+
+            reset() {
+                if (!confirm("Start new script? This clears everything.")) return;
+                this.clearDraft();
+                this.vo.sequence = []; this.scriptContent = ""; this.onCam = ""; this.addAfterIndex = null;
+                this.sot = { name: '', title: '', transcript: '', inWords: '', outWords: '', autoIn: '', autoOut: '', runs: '', ending: '', endingCutaway: { shotType: 'wide', desc: '', nat: '' }, cutaways: [], transcriptEditMode: true, pendingSelection: null };
+
+                document.getElementById('reporterName').value = ""; document.getElementById('slugField').value = "";
+                document.getElementById('onCamText').value = ""; document.getElementById('onCamWordCount').innerText = "0";
+                document.getElementById('scriptEdit').value = "";
+                document.getElementById('scriptWordCount').innerText = "0";
+
+                document.getElementById('sotName').value = ""; document.getElementById('sotTitle').value = "";
+                document.getElementById('sotTranscriptEdit').value = ""; document.getElementById('sotTranscriptEdit').classList.remove('hidden'); document.getElementById('sotTranscriptView').classList.add('hidden');
+                document.getElementById('toggleTranscriptBtn').innerText = 'Done'; document.getElementById('toggleTranscriptBtn').className = 'text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors cursor-pointer uppercase';
+                document.getElementById('sotInWords').value = ""; document.getElementById('sotOutWords').value = ""; document.getElementById('sotRuns').value = "";
+                document.getElementById('endingCutawayDesc').value = ""; document.getElementById('endingCutawayNat').value = ""; document.getElementById('endingCutawayShotType').value = "wide";
+                document.getElementById('endingCutawayFields').classList.add('hidden');
+                document.querySelectorAll('.ending-btn').forEach(btn => { btn.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-700'); btn.classList.add('border-slate-200', 'text-slate-600'); });
+                document.getElementById('cutawaysList').innerHTML = ''; document.getElementById('cutawayError').classList.add('hidden'); document.getElementById('cutawaySelectionLabel').innerText = '';
+
+                this.renderPalette(); this.renderVOInputs();
+                this.updateCalculations(); this.renderLivePreview(); this.validate();
+            },
+
+            // ---------- Export ----------
+            exportDoc() {
+                // Defense in depth: don't rely solely on the button's disabled state to keep an
+                // incomplete script from exporting.
+                if (this.getValidationIssues().length > 0) { this.validate(); return; }
+
+                const reporter = document.getElementById('reporterName').value;
+                const slug = document.getElementById('slugField').value;
+                const rows = this.buildScriptRows();
+
+                const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } = window.docx;
+
+                const COL_WIDTHS = [1354, 3610, 2708, 1354]; // twips; sums to 9026 (A4 content width, 1" margins)
+                const cellBorder = { style: BorderStyle.SINGLE, size: 2, color: 'BFBFBF' };
+                const borders = { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder };
+
+                const toRun = (r) => {
+                    const props = { text: r.text };
+                    if (r.bold) props.bold = true;
+                    if (r.italic) props.italics = true;
+                    return new TextRun(props);
+                };
+                const toParagraph = (runs) => new Paragraph({ children: runs.map(toRun) });
+                const toCell = (cellObj, width) => {
+                    const opts = {
+                        children: cellObj.paras.map(toParagraph),
+                        width: { size: width, type: WidthType.DXA },
+                        borders,
+                        margins: { top: 20, bottom: 20, left: 100, right: 100 },
+                    };
+                    if (cellObj.rowSpan > 1) opts.rowSpan = cellObj.rowSpan;
+                    return new TableCell(opts);
+                };
+                // Slots that are `null` are covered by a rowSpan from the same column above — omit them entirely.
+                const toRow = (cells) => new TableRow({
+                    children: cells.map((c, i) => c === null ? null : toCell(c, COL_WIDTHS[i])).filter(c => c !== null),
+                });
+
+                const table = new Table({
+                    width: { size: 9026, type: WidthType.DXA },
+                    columnWidths: COL_WIDTHS,
+                    rows: rows.map(toRow),
+                });
+
+                const total = document.getElementById('timingTotal').innerText;
+                const headerParas = [
+                    new Paragraph({ children: [new TextRun({ text: `Reporter: ${reporter}`, bold: true })] }),
+                    new Paragraph({ children: [new TextRun({ text: `Slug: ${slug}`, bold: true })] }),
+                    new Paragraph({ children: [new TextRun('')] }),
+                ];
+                const totalPara = new Paragraph({
+                    spacing: { before: 200 },
+                    children: [new TextRun({ text: `Total running time: ${total}s (target ${TARGET_SECONDS}s ±${TOLERANCE_SECONDS})`, bold: true })],
+                });
+
+                const doc = new Document({
+                    creator: reporter || undefined,
+                    title: 'OOV/SOT Script',
+                    sections: [{
+                        properties: {
+                            page: {
+                                size: { width: 11906, height: 16838 },
+                                margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 },
+                            },
+                        },
+                        children: [...headerParas, table, totalPara],
+                    }],
+                });
+
+                Packer.toBlob(doc).then(blob => {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    const safeReporter = this.sanitizeFilename(reporter) || 'Script';
+                    const safeSlug = this.sanitizeFilename(slug) || 'Untitled';
+                    link.download = `${safeReporter}_${safeSlug}.docx`;
+                    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                });
+            }
+        };
+
+        app.init();
+    </script>
+</body>
+</html>
