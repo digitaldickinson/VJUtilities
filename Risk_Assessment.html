@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Health & Safety Assessment</title>
+    
+    <!-- Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- DOCX Generation Libraries -->
+    <script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <style>
+        body { background-color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .input-std { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; transition: all 0.2s; }
+        .input-std:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        .section-header { font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.9em; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+        
+        /* Checkbox customization */
+        .checkbox-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px; border-radius: 4px; transition: background-color 0.1s; }
+        .checkbox-row:hover { background-color: #f1f5f9; }
+        
+        .checkbox-wrapper { display: flex; align-items: center; gap: 8px; cursor: pointer; flex-grow: 1; }
+        
+        /* High Risk Specifics */
+        .high-risk-wrapper:hover { background-color: #fef2f2; }
+
+        /* Tooltip Styles */
+        .tooltip-trigger { position: relative; display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; color: #94a3b8; cursor: help; margin-left: 8px; font-size: 11px; border: 1px solid #cbd5e1; flex-shrink: 0; }
+        .tooltip-trigger:hover { color: #6366f1; border-color: #6366f1; background-color: #e0e7ff; }
+        
+        .tooltip-content {
+            visibility: hidden;
+            position: absolute;
+            bottom: 140%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            width: max-content;
+            max-width: 250px;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            font-weight: normal;
+            line-height: 1.4;
+        }
+        
+        /* Arrow for tooltip */
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
+
+        .checkbox-row:hover .tooltip-content { visibility: visible; opacity: 1; }
+
+        /* Risk Matrix Grid */
+        .matrix-cell { border: 1px solid #e2e8f0; padding: 8px; text-align: center; font-size: 0.85em; }
+        .matrix-header { font-weight: bold; background-color: #f1f5f9; }
+        .risk-vl { background-color: #dcfce7; color: #166534; font-weight: bold; } /* Very Low - Green */
+        .risk-l { background-color: #bbf7d0; color: #166534; font-weight: bold; }  /* Low - Green */
+        .risk-m { background-color: #fef08a; color: #854d0e; font-weight: bold; }  /* Med - Yellow */
+        .risk-h { background-color: #fed7aa; color: #9a3412; font-weight: bold; }  /* High - Orange */
+        .risk-vh { background-color: #fca5a5; color: #991b1b; font-weight: bold; } /* Very High - Red */
+
+        /* Print Styles - Hiding strictly for screen-only elements */
+        @media print {
+            body { background-color: white; padding: 0; }
+            .no-print { display: none !important; }
+            .shadow-xl { box-shadow: none !important; }
+            .border { border: 1px solid #ccc !important; }
+            .input-std { border: 1px solid #ddd; background: transparent; resize: none; }
+            select { appearance: none; border: none; background: transparent; }
+            .bg-slate-900 { background-color: white !important; color: black !important; border-bottom: 2px solid black; }
+            .bg-indigo-600 { display: none; } 
+            textarea { height: auto; overflow: visible; }
+            .tooltip-trigger { display: none; } /* Hide info icons in print */
+            
+            /* Force page break */
+            .break-before { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 p-4 md:p-8 flex justify-center">
+
+    <div class="max-w-6xl w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden relative">
+        
+        <!-- Header -->
+        <div class="bg-slate-900 text-white p-6 border-b border-slate-800 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">LOCATION HEALTH AND SAFETY ASSESSMENT</h1>
+                <p class="text-slate-400 text-sm mt-1">Please complete all sections BEFORE you go and shoot</p>
+            </div>
+        </div>
+
+        <form id="assessmentForm" class="p-6 md:p-8 space-y-8" onsubmit="return false;">
+
+            <!-- Part A: Assessment Details -->
+            <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                <h2 class="section-header flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                    Part A: Assessment Details
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Assessment Title / Project</label>
+                        <input type="text" id="projTitle" class="input-std" placeholder="e.g. Final Year Documentary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Location Details</label>
+                        <input type="text" id="locDetails" class="input-std" placeholder="Full Address or GPS coordinates">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Start Date</label>
+                        <input type="date" id="startDate" class="input-std">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">End Date</label>
+                        <input type="date" id="endDate" class="input-std">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Assessed By (Name)</label>
+                        <input type="text" id="assessedBy" class="input-std">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">Date Authorised</label>
+                        <input type="date" id="dateAuth" class="input-std">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Key Team Members</label>
+                    <textarea id="teamMembers" class="input-std h-16 resize-y" placeholder="List Director, Producer, Camera Op, Sound, etc."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Assessment Outline / Description</label>
+                    <textarea id="outline" class="input-std h-20 resize-y" placeholder="Briefly describe the activity..."></textarea>
+                </div>
+
+                <div class="mt-4 p-3 bg-blue-50 text-blue-800 text-xs rounded border border-blue-100 leading-relaxed">
+                    <strong>Privacy Notice:</strong> Personal information collected for the purposes of this form will be used to identify those at risk and those involved in controlling risk.
+                </div>
+            </div>
+
+            <!-- Hazard Checklist -->
+            <div>
+                <h2 class="section-header flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-600"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Hazard Checklist
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-amber-50/50 p-6 rounded-xl border border-amber-100">
+                    
+                    <!-- Situational -->
+                    <div id="col-situational">
+                        <h3 class="font-bold text-amber-800 text-sm mb-3 border-b border-amber-200 pb-1">Situational</h3>
+                        <div class="space-y-1 text-sm text-slate-700">
+                            <!-- Macro to generate rows with tooltips to keep code clean -->
+                            <script>
+                                const sitHazards = [
+                                    ["Asphyxiation / hypoxia", "Low oxygen levels in confined spaces or underwater."],
+                                    ["Attack by animal", "Bites, stings, or aggression from domestic/wild animals."],
+                                    ["Crush by load", "Heavy equipment/objects falling or trapping limbs."],
+                                    ["Drowning", "Working near/in deep water or strong currents."],
+                                    ["Entanglement in machinery", "Clothing/hair caught in rotating machinery parts."],
+                                    ["Falls from height", "Working on ladders, roofs, or unprotected edges."],
+                                    ["Impact / collision (driving)", "Vehicle accidents, reversing vehicles, or traffic."],
+                                    ["Manual handling", "Back injury from lifting heavy/awkward gear."],
+                                    ["Object falling/flying", "Equipment dropping from rigs or overhead areas."],
+                                    ["Obstruction / exposed feature", "Trip hazards, low ceilings, or tight squeeze points."],
+                                    ["Sharp object / material", "Cuts from broken glass, blades, or jagged metal."],
+                                    ["Slippery surface", "Wet floors, ice, mud, or polished surfaces."],
+                                    ["Stroboscopic light", "Risk of seizures for photosensitive individuals."],
+                                    ["Trap in moving machinery", "Fingers/limbs pinched in moving mechanisms."],
+                                    ["Trip hazard", "Cables, bags, or uneven ground causing falls."],
+                                    ["High wind / air pressure", "Equipment blowing over or debris becoming projectiles."]
+                                ];
+                                sitHazards.forEach(([h, t]) => {
+                                    document.write(`
+                                        <div class="checkbox-row group">
+                                            <label class="checkbox-wrapper">
+                                                <input type="checkbox" class="accent-amber-600"> ${h}
+                                            </label>
+                                            <div class="tooltip-trigger">i<span class="tooltip-content">${t}</span></div>
+                                        </div>
+                                    `);
+                                });
+                            </script>
+                        </div>
+                    </div>
+
+                    <!-- Physical / Chemical -->
+                    <div id="col-physical">
+                        <h3 class="font-bold text-amber-800 text-sm mb-3 border-b border-amber-200 pb-1">Physical / Chemical</h3>
+                        <div class="space-y-1 text-sm text-slate-700">
+                            <script>
+                                const physHazards = [
+                                    ["Cold surface – contact", "Skin damage from touching freezing metal/ice."],
+                                    ["Cold exposure / hypothermia", "Hypothermia/frostbite from prolonged cold."],
+                                    ["Electric shock", "Faulty wiring, wet equipment, or live cables."],
+                                    ["Explosive release of pressure", "Compressed gas cylinders or chemical reactions."],
+                                    ["Fire", "Flammable materials, hot lights, or pyrotechnics."],
+                                    ["Hazardous substance", "Toxic fumes, chemicals, or asbestos."],
+                                    ["Heat exposure / exhaustion", "Sunstroke or dehydration in hot environments."],
+                                    ["Hot surface – contact", "Burns from hot lights, engines, or heaters."],
+                                    ["Lasers", "Eye damage from high-power laser pointers/lights."],
+                                    ["Noise", "Hearing damage from loud music, machinery, or SFX."],
+                                    ["Radiation (ionizing)", "X-rays or radioactive location hazards."],
+                                    ["Radiation (non-ionizing)", "Strong UV (sun) or RF transmitters."],
+                                    ["Vibration", "Nerve damage from long-term use of power tools."],
+                                    ["Environmental damage", "Harming wildlife or polluting the location."],
+                                    ["Environmental nuisance", "Noise/lights disturbing neighbors or public."]
+                                ];
+                                physHazards.forEach(([h, t]) => {
+                                    document.write(`
+                                        <div class="checkbox-row group">
+                                            <label class="checkbox-wrapper">
+                                                <input type="checkbox" class="accent-amber-600"> ${h}
+                                            </label>
+                                            <div class="tooltip-trigger">i<span class="tooltip-content">${t}</span></div>
+                                        </div>
+                                    `);
+                                });
+                            </script>
+                        </div>
+                    </div>
+
+                    <!-- Health / Human -->
+                    <div id="col-health">
+                        <h3 class="font-bold text-amber-800 text-sm mb-3 border-b border-amber-200 pb-1">Health / Human</h3>
+                        <div class="space-y-1 text-sm text-slate-700">
+                            <script>
+                                const healthHazards = [
+                                    ["Allergic reaction", "Severe response to nuts, stings, or latex."],
+                                    ["Disease / infectious agent", "Bacteria/viruses from dirty water, animals, or waste."],
+                                    ["Fatigue / exertion", "Accidents caused by tiredness or long shifts."],
+                                    ["Lack of food / water", "Dehydration or weakness affecting judgment."],
+                                    ["Repetitive actions", "Strain injuries from repeated camera/mic work."],
+                                    ["Static body posture", "Pain from holding positions (e.g. boom op) too long."],
+                                    ["Psychological (stress)", "Mental pressure affecting health or safety."]
+                                ];
+                                healthHazards.forEach(([h, t]) => {
+                                    document.write(`
+                                        <div class="checkbox-row group">
+                                            <label class="checkbox-wrapper">
+                                                <input type="checkbox" class="accent-amber-600"> ${h}
+                                            </label>
+                                            <div class="tooltip-trigger">i<span class="tooltip-content">${t}</span></div>
+                                        </div>
+                                    `);
+                                });
+                            </script>
+                            
+                            <!-- Human Factors Heading -->
+                            <h4 class="font-bold text-amber-800 text-xs uppercase mt-4 mb-1 border-b border-amber-100">Human Factors</h4>
+                            <div class="checkbox-row group">
+                                <label class="checkbox-wrapper">
+                                    <input type="checkbox" class="accent-amber-600"> Lack of the 4C’s
+                                </label>
+                                <div class="tooltip-trigger">i<span class="tooltip-content">Competence, Communication, Co-operation, Co-ordination</span></div>
+                            </div>
+                            
+                            <!-- Lone Working Added -->
+                            <div class="checkbox-row group">
+                                <label class="checkbox-wrapper">
+                                    <input type="checkbox" class="lone-working-checkbox accent-amber-600"> Lone Working
+                                </label>
+                                <div class="tooltip-trigger">i<span class="tooltip-content">Working by yourself without close or direct supervision.</span></div>
+                            </div>
+
+                            <!-- Security / High Risk Highlighted -->
+                            <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <h4 class="font-bold text-red-700 text-xs uppercase mb-2 border-b border-red-200 pb-1 flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    Security / High Risk
+                                </h4>
+                                <div class="space-y-1">
+                                    <script>
+                                        const secHazards = [
+                                            ["Abuse (child protection)", "Safeguarding issues involving minors."],
+                                            ["Personal abuse / threats", "Verbal aggression from public or crew."],
+                                            ["Assault by person", "Physical violence or mugging risks."],
+                                            ["Bomb threat / explosion", "Suspicious packages or terror alerts."],
+                                            ["Kidnap", "Abduction risk in hostile environments."],
+                                            ["Shot by firearm", "Risk from hunting, military exercises, or crime."]
+                                        ];
+                                        secHazards.forEach(([h, t]) => {
+                                            document.write(`
+                                                <div class="checkbox-row group high-risk-wrapper text-red-900 font-medium rounded hover:bg-red-100">
+                                                    <label class="checkbox-wrapper">
+                                                        <input type="checkbox" class="high-risk-checkbox accent-red-600"> ${h}
+                                                    </label>
+                                                    <div class="tooltip-trigger border-red-200 text-red-400 hover:text-red-700 hover:border-red-500 hover:bg-red-100">i<span class="tooltip-content bg-red-900">${t}</span></div>
+                                                </div>
+                                            `);
+                                        });
+                                    </script>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">Location Comments / Amendments</label>
+                    <textarea id="locComments" class="input-std h-16 resize-none bg-slate-50" placeholder="Record any last minute changes here..."></textarea>
+                </div>
+            </div>
+
+            <!-- Part B: Risk Table -->
+            <div class="break-before">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="section-header flex items-center gap-2 mb-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-600"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Part B - Hazards, Controls and Risks
+                    </h2>
+                    
+                    <!-- Toggle Button for Risk Matrix -->
+                    <button onclick="toggleMatrix()" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded no-print">
+                        Show/Hide Risk Matrix Guide
+                    </button>
+                </div>
+
+                <!-- Risk Matrix (Hidden by Default) -->
+                <div id="riskMatrix" class="hidden mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl transition-all">
+                    <h4 class="text-xs font-bold uppercase text-slate-500 mb-3">Risk Calculation Matrix</h4>
+                    <div class="grid grid-cols-4 gap-1 text-xs">
+                        <!-- Header Row -->
+                        <div class="matrix-cell border-none bg-transparent"></div>
+                        <div class="matrix-cell matrix-header">Slightly Harmful</div>
+                        <div class="matrix-cell matrix-header">Harmful</div>
+                        <div class="matrix-cell matrix-header">Extremely Harmful</div>
+
+                        <!-- Row 1 -->
+                        <div class="matrix-cell matrix-header text-left pl-2">Highly Unlikely</div>
+                        <div class="matrix-cell risk-vl">Very Low</div>
+                        <div class="matrix-cell risk-l">Low</div>
+                        <div class="matrix-cell risk-m">Medium</div>
+
+                        <!-- Row 2 -->
+                        <div class="matrix-cell matrix-header text-left pl-2">Unlikely</div>
+                        <div class="matrix-cell risk-l">Low</div>
+                        <div class="matrix-cell risk-m">Medium</div>
+                        <div class="matrix-cell risk-h">High</div>
+
+                        <!-- Row 3 -->
+                        <div class="matrix-cell matrix-header text-left pl-2">Likely</div>
+                        <div class="matrix-cell risk-m">Medium</div>
+                        <div class="matrix-cell risk-h">High</div>
+                        <div class="matrix-cell risk-vh">Very High</div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-2 text-center italic">Use this grid to determine the Risk Rating based on Likelihood vs Severity.</p>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse" id="riskTable">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 text-xs uppercase border-b border-slate-200">
+                                <th class="p-3 w-1/5 min-w-[150px]">Activity</th>
+                                <th class="p-3 w-1/5 min-w-[150px]">Significant Hazards</th>
+                                <th class="p-3 w-1/5 min-w-[150px]">Who is at Risk?</th>
+                                <th class="p-3 w-1/4 min-w-[200px]">Controls</th>
+                                <th class="p-3 w-24">Rating</th>
+                                <th class="p-3 w-10 no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="riskTableBody">
+                            <!-- Initial Row -->
+                            <tr class="border-b border-slate-100 group hover:bg-slate-50">
+                                <td class="p-2 align-top">
+                                    <textarea class="input-std h-24 resize-y" placeholder="What are you doing and where?"></textarea>
+                                </td>
+                                <td class="p-2 align-top">
+                                    <textarea class="input-std h-24 resize-y" placeholder="Outline what could cause harm or damage"></textarea>
+                                </td>
+                                <td class="p-2 align-top">
+                                    <textarea class="input-std h-24 resize-y" placeholder="Anyone specific? Vulnerabilities?"></textarea>
+                                </td>
+                                <td class="p-2 align-top">
+                                    <textarea class="input-std h-24 resize-y" placeholder="Precautions in place to control risk"></textarea>
+                                </td>
+                                <td class="p-2 align-top">
+                                    <select class="input-std bg-white" onchange="checkRiskRating(this)">
+                                        <option value="" disabled selected>-</option>
+                                        <option value="VL">Very Low</option>
+                                        <option value="L">Low</option>
+                                        <option value="M">Med</option>
+                                        <option value="H">High</option>
+                                        <option value="VH">Very High</option>
+                                    </select>
+                                </td>
+                                <td class="p-2 align-middle text-center no-print">
+                                    <button onclick="deleteRow(this)" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Remove Row">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 text-right no-print">
+                    <button onclick="addRow()" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 ml-auto border border-indigo-200 px-3 py-2 rounded-lg hover:bg-indigo-50 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Add Another Row
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer / Action Buttons -->
+            <div class="flex justify-end gap-4 border-t border-slate-100 pt-6 no-print">
+                <button id="btnExport" onclick="exportToWord()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg flex items-center gap-2 transition-transform transform hover:scale-105">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                    Export to Word (.docx)
+                </button>
+            </div>
+            
+            <div class="text-center text-xs text-slate-400 mt-8 pb-4 no-print">
+                Based on the BBC LOCATION HEALTH AND SAFETY ASSESSMENT form.
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Warning Modal -->
+    <div id="riskModal" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden no-print backdrop-blur-sm transition-opacity">
+        <div class="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full border-l-4 border-red-600 animate-[bounce_0.3s_ease-out]">
+            <div class="flex items-start gap-4">
+                <div class="bg-red-100 p-2 rounded-full text-red-600 shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div>
+                    <h3 id="modalTitle" class="text-red-700 font-bold text-lg mb-2">High Risk Activity Selected</h3>
+                    <p id="modalText" class="text-slate-600 text-sm mb-4 leading-relaxed">
+                        You have selected a <strong>Security / High Risk</strong> category. We generally advise that students <strong>do not</strong> undertake these activities.
+                    </p>
+                    <p class="text-slate-800 font-bold text-sm mb-6 border-l-2 border-red-300 pl-3">
+                        Please consult with your tutor or technical staff before proceeding with this shoot.
+                    </p>
+                    <button onclick="closeModal()" class="bg-slate-900 text-white font-medium px-4 py-2.5 rounded-lg hover:bg-slate-800 w-full transition-colors text-sm">
+                        I Understand - I will check with staff
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logic Script -->
+    <script>
+        // --- Matrix Toggle Logic ---
+        function toggleMatrix() {
+            const matrix = document.getElementById('riskMatrix');
+            if (matrix.classList.contains('hidden')) {
+                matrix.classList.remove('hidden');
+            } else {
+                matrix.classList.add('hidden');
+            }
+        }
+
+        // --- Warning Modal Logic ---
+        const modal = document.getElementById('riskModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalText = document.getElementById('modalText');
+        
+        // Use event delegation for dynamically generated checkboxes if needed
+        const highRiskBoxes = document.querySelectorAll('.high-risk-checkbox');
+        highRiskBoxes.forEach(box => {
+            box.addEventListener('change', function() {
+                if(this.checked) {
+                    showWarning('category');
+                }
+            });
+        });
+
+        // Use event delegation for Lone Working checkbox
+        const loneWorkingBoxes = document.querySelectorAll('.lone-working-checkbox');
+        loneWorkingBoxes.forEach(box => {
+            box.addEventListener('change', function() {
+                if(this.checked) {
+                    showWarning('loneWorking');
+                }
+            });
+        });
+
+        function showWarning(type) {
+            if (type === 'category') {
+                modalTitle.innerText = "High Risk Activity Selected";
+                modalText.innerHTML = `You have selected a <strong>Security / High Risk</strong> category. We generally advise that students <strong>do not</strong> undertake these activities.`;
+            } else if (type === 'rating') {
+                modalTitle.innerText = "High Risk Rating Identified";
+                modalText.innerHTML = `You have rated a risk as <strong>High</strong> or <strong>Very High</strong>. Please confirm this assessment with a member of staff.`;
+            } else if (type === 'loneWorking') {
+                modalTitle.innerText = "Lone Working Selected";
+                modalText.innerHTML = `You have selected <strong>Lone Working</strong>. Please ensure you have a "Buddy System" or "Check-in Procedure" in place as a control measure.`;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+        document.addEventListener('keydown', function(event) { if (event.key === "Escape") closeModal(); });
+
+        // Check Risk Rating Dropdown
+        function checkRiskRating(selectElement) {
+            if (selectElement.value === 'H' || selectElement.value === 'VH') {
+                showWarning('rating');
+            }
+        }
+
+
+        // --- Table Logic ---
+        function addRow() {
+            const tableBody = document.getElementById('riskTableBody');
+            
+            const newRow = document.createElement('tr');
+            newRow.className = 'border-b border-slate-100 group hover:bg-slate-50 fade-in';
+            newRow.innerHTML = `
+                <td class="p-2 align-top"><textarea class="input-std h-24 resize-y" placeholder="What are you doing and where?"></textarea></td>
+                <td class="p-2 align-top"><textarea class="input-std h-24 resize-y" placeholder="Outline what could cause harm or damage"></textarea></td>
+                <td class="p-2 align-top"><textarea class="input-std h-24 resize-y" placeholder="Anyone specific? Vulnerabilities?"></textarea></td>
+                <td class="p-2 align-top"><textarea class="input-std h-24 resize-y" placeholder="Precautions in place to control risk"></textarea></td>
+                <td class="p-2 align-top">
+                    <select class="input-std bg-white" onchange="checkRiskRating(this)">
+                        <option value="" disabled selected>-</option>
+                        <option value="VL">Very Low</option>
+                        <option value="L">Low</option>
+                        <option value="M">Med</option>
+                        <option value="H">High</option>
+                        <option value="VH">Very High</option>
+                    </select>
+                </td>
+                <td class="p-2 align-middle text-center no-print">
+                    <button onclick="deleteRow(this)" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Remove Row">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(newRow);
+        }
+
+        function deleteRow(button) {
+            const row = button.closest('tr');
+            if (document.getElementById('riskTableBody').rows.length > 1) { row.remove(); }
+            else { row.querySelectorAll('textarea').forEach(t => t.value = ''); row.querySelector('select').selectedIndex = 0; }
+        }
+
+        // --- Export to DOCX Logic with Gap Analysis ---
+        function exportToWord() {
+            const locDetails = document.getElementById('locDetails').value.toLowerCase();
+            const partBContent = Array.from(document.getElementById('riskTableBody').querySelectorAll('textarea')).map(t => t.value.toLowerCase()).join(' ');
+
+            // Travel/Transport Check
+            const safeLocations = ['studio', 'campus', 'college', 'university', 'classroom'];
+            const isExternal = !safeLocations.some(safe => locDetails.includes(safe));
+            const hasTravelRisk = ['travel', 'transport', 'driving', 'car', 'bus', 'train', 'vehicle'].some(term => partBContent.includes(term));
+
+            if (isExternal && !hasTravelRisk && locDetails.trim() !== "") {
+                const proceedTravel = confirm("Travel Risk Check:\n\nYou appear to be filming at an external location, but haven't mentioned travel or transport risks in your Risk Table.\n\nHave you considered how you are getting there and back safely?\n\nClick OK to continue export, or Cancel to add travel details.");
+                if (!proceedTravel) return;
+            }
+
+            // Gap Analysis
+            const checkedHazards = [];
+            document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                const label = cb.closest('label');
+                if(label) checkedHazards.push(label.textContent.trim());
+            });
+
+            // Re-fetch Part B content for hazard check (case sensitive check might be better for hazards, but loose check is safer)
+            // Let's use the raw values
+            const partBContentRaw = Array.from(document.getElementById('riskTableBody').querySelectorAll('textarea')).map(t => t.value).join(' ');
+
+            const missingHazards = checkedHazards.filter(h => !partBContentRaw.includes(h));
+
+            if(missingHazards.length > 0) {
+                const proceed = confirm(`Gap Analysis Warning:\n\nYou ticked the following hazards in Part A but they do not appear in your Risk Table (Part B):\n\n- ${missingHazards.join('\n- ')}\n\nDo you want to export anyway?`);
+                if(!proceed) return;
+            }
+
+            const btn = document.getElementById('btnExport');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Generating...";
+            btn.disabled = true;
+
+            setTimeout(() => {
+                generateDOCX().then(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+            }, 100);
+        }
+
+        async function generateDOCX() {
+            const { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, TextRun, HeadingLevel, AlignmentType, BorderStyle } = docx;
+
+            // Define cell padding (margins) in twips (1/20 of a point)
+            // 100 twips = 5 points, providing a nice bit of breathing room
+            const cellPadding = { top: 100, bottom: 100, left: 100, right: 100 };
+
+            // Helper to create simple text paragraphs
+            const t = (text, bold = false) => new TextRun({ text: text, bold: bold, font: "Calibri", size: 22 });
+            const p = (text, bold = false) => new Paragraph({ children: [t(text, bold)] });
+            
+            // 1. Details Table
+            const detailsTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({ children: [ 
+                        new TableCell({ children: [p("Assessment Title / Project", true)], width: { size: 30, type: WidthType.PERCENTAGE }, margins: cellPadding }), 
+                        new TableCell({ children: [p(document.getElementById('projTitle').value)], margins: cellPadding }) 
+                    ] }),
+                    new TableRow({ children: [ 
+                        new TableCell({ children: [p("Location Details", true)], margins: cellPadding }), 
+                        new TableCell({ children: [p(document.getElementById('locDetails').value)], margins: cellPadding }) 
+                    ] }),
+                    new TableRow({ children: [ 
+                        new TableCell({ children: [p("Start Date", true)], margins: cellPadding }), 
+                        new TableCell({ children: [p(document.getElementById('startDate').value)], margins: cellPadding }) 
+                    ] }),
+                    new TableRow({ children: [ 
+                        new TableCell({ children: [p("End Date", true)], margins: cellPadding }), 
+                        new TableCell({ children: [p(document.getElementById('endDate').value)], margins: cellPadding }) 
+                    ] }),
+                    new TableRow({ children: [ 
+                        new TableCell({ children: [p("Assessed By", true)], margins: cellPadding }), 
+                        new TableCell({ children: [p(document.getElementById('assessedBy').value)], margins: cellPadding }) 
+                    ] }),
+                    new TableRow({ children: [ 
+                        new TableCell({ children: [p("Date Authorised", true)], margins: cellPadding }), 
+                        new TableCell({ children: [p(document.getElementById('dateAuth').value)], margins: cellPadding }) 
+                    ] }),
+                    new TableRow({ children: [ 
+                        new TableCell({ children: [p("Key Team Members", true)], margins: cellPadding }), 
+                        new TableCell({ children: [p(document.getElementById('teamMembers').value)], margins: cellPadding }) 
+                    ] }),
+                    new TableRow({ children: [ 
+                        new TableCell({ children: [p("Outline", true)], margins: cellPadding }), 
+                        new TableCell({ children: [p(document.getElementById('outline').value)], margins: cellPadding }) 
+                    ] }),
+                ],
+            });
+
+            // 2. Checklist Extraction
+            function getChecklistItems(colId) {
+                const container = document.getElementById(colId);
+                const items = [];
+                // Add header manually based on colId
+                if(colId === 'col-situational') items.push(new Paragraph({ children: [t("SITUATIONAL", true)], spacing: { before: 100, after: 100 } }));
+                if(colId === 'col-physical') items.push(new Paragraph({ children: [t("PHYSICAL / CHEMICAL", true)], spacing: { before: 100, after: 100 } }));
+                if(colId === 'col-health') items.push(new Paragraph({ children: [t("HEALTH / HUMAN", true)], spacing: { before: 100, after: 100 } }));
+
+                // Iterate inputs
+                const elements = container.querySelectorAll('label, h4');
+                elements.forEach(el => {
+                    if (el.tagName === 'H4') {
+                        items.push(new Paragraph({ children: [t(el.innerText, true)], spacing: { before: 200, after: 50 }, color: "991B1B" }));
+                    } else if (el.tagName === 'LABEL') {
+                        const checkbox = el.querySelector('input[type="checkbox"]');
+                        const text = el.innerText.trim();
+                        const isChecked = checkbox.checked;
+                        const symbol = isChecked ? "[ X ] " : "[   ] ";
+                        items.push(new Paragraph({ children: [t(symbol + text, isChecked)] })); // Bold if checked
+                    }
+                });
+                return items;
+            }
+
+            const checklistRow = new TableRow({
+                children: [
+                    new TableCell({ children: getChecklistItems('col-situational'), margins: cellPadding }),
+                    new TableCell({ children: getChecklistItems('col-physical'), margins: cellPadding }),
+                    new TableCell({ children: getChecklistItems('col-health'), margins: cellPadding })
+                ]
+            });
+
+            const checklistTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [checklistRow]
+            });
+
+
+            // 3. Risk Table Extraction
+            const riskRows = [];
+            // Header
+            riskRows.push(new TableRow({
+                tableHeader: true,
+                children: ["Activity", "Hazards", "Who is at Risk", "Controls", "Rating"].map(text => 
+                    new TableCell({ children: [p(text, true)], shading: { fill: "E2E8F0" }, margins: cellPadding })
+                )
+            }));
+
+            // Body
+            const htmlRows = document.getElementById('riskTableBody').querySelectorAll('tr');
+            htmlRows.forEach(row => {
+                const cells = row.querySelectorAll('textarea, select');
+                if(cells.length > 0) {
+                   const rowChildren = [];
+                   cells.forEach(c => {
+                       let val = c.value;
+                       // Convert short code to full text for word doc if it's a select
+                       if(c.tagName === 'SELECT') {
+                           if(val === 'VL') val = 'Very Low';
+                           if(val === 'L') val = 'Low';
+                           if(val === 'M') val = 'Med';
+                           if(val === 'H') val = 'High';
+                           if(val === 'VH') val = 'Very High';
+                       }
+                       rowChildren.push(new TableCell({ children: [p(val)], margins: cellPadding }))
+                   });
+                   riskRows.push(new TableRow({ children: rowChildren }));
+                }
+            });
+
+            const riskTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: riskRows
+            });
+
+
+            // 4. Build Document
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        new Paragraph({ children: [t("RISK ASSESSMENT", true)], alignment: AlignmentType.CENTER, heading: HeadingLevel.HEADING_1 }),
+                        new Paragraph({ text: "" }), // spacer
+                        
+                        new Paragraph({ children: [t("PART A: DETAILS", true)], heading: HeadingLevel.HEADING_2 }),
+                        detailsTable,
+                        new Paragraph({ text: "" }), 
+
+                        new Paragraph({ children: [t("PRIVACY NOTICE: Personal information collected for the purposes of this form will be used to identify those at risk and those involved in controlling risk.")] }),
+                        new Paragraph({ text: "" }), 
+
+                        new Paragraph({ children: [t("HAZARD CHECKLIST", true)], heading: HeadingLevel.HEADING_2 }),
+                        checklistTable,
+                        
+                        new Paragraph({ text: "" }), 
+                        new Paragraph({ children: [t("Location Comments / Amendments:", true)] }),
+                        new Paragraph({ children: [t(document.getElementById('locComments').value)] }),
+                        new Paragraph({ text: "" }), 
+
+                        new Paragraph({ 
+                            children: [t("PART B: HAZARDS, CONTROLS AND RISKS", true)], 
+                            heading: HeadingLevel.HEADING_2,
+                            pageBreakBefore: true
+                        }),
+                        riskTable
+                    ],
+                }],
+            });
+
+            // 5. Save
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, "Risk_Assessment.docx");
+        }
+    </script>
+</body>
+</html>

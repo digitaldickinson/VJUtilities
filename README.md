@@ -1,58 +1,126 @@
 # VJ Teaching Utilities
-This is a set of "useful" utilities created for my video journalism teaching. Some are specific to the modules I teach and their assessment. Others are a little more generic. 
 
-**NOTE**:These were all generated with some input from AI to create the code. 
+A collection of lightweight, standalone HTML tools created for video journalism teaching. These utilities are designed to work in a browser and can be added to a VLE such as Moodle, with minimal local setup.
 
-All of these were developed as standalone HTML pages so that they could be added to our VLE (Moodle) with no local dependencies such as graphics or JS libraries. They do require internet access to online/CDN libraries. Some corporate networks and VLE's may be picky about this, so your mileage may vary. 
+## Overview
 
-Please feel free to use them as you wish. However, I'd really appreciate it if you let me know if you did. I'd be interested in feedback! Let me know at a.dickinson@mmu.ac.uk
+- Standalone HTML pages with no local JavaScript or graphics dependencies.
+- Require internet access for CDN-hosted libraries and online scripts.
+- Useful for script-building, visual storyboarding, shot logging, and practice delivery.
 
-## ScriptBuilder.html ## 
-<img width="699" height="391" alt="image" src="https://github.com/user-attachments/assets/5eba7084-06fa-44f5-8632-e6bd6d448c28" />
+> Note: Some code was generated with assistance from AI and then adapted for teaching use.
 
-A standalone webpage that allows a student to visually build formatted script from blocks of content. This was developed for a first-year module, Media Making for Journalists, where the assessment required them to build a simple package to a preset template (hence the basic structure). It works out basic timings and forces the student to include shot descriptions, nat sound information and lower-third information on interviews. It also allows for a basic cutaway in an the interview. 
-- Works as a standalone HMTL file (but requires connection to access scripts)
-- Student can drag-and-drop blocks for WS, MS, CU, an UNUSUAL ANGLE, Library footage or Full-screen graphic.
-  - Click to add shots functionality added to make it a bit more mobile-friendly
-- Shot blocks require a shot description and detail of NAT sound before users can export script.
-- Shows a live preview of the script as the student makes changes
-- Users can copy a version of the script to the clipboard.
-- Exports a Word document with a script formatted for assessment submission
+## Live demos
 
-## Visualscript.html ## 
-<img width="600" height="504" alt="Screenshot of visualscript" src="https://github.com/user-attachments/assets/e94ba425-3345-47cb-9849-5d7fe14534e0" />
+Live pages are available via GitHub Pages:
 
-A more advanced version of scriptbuilder, this is still a standalone webpage that allows a student to visually build a formatted script from blocks of content. There is no limit to the number of shots. 
+- ScriptBuilder: https://digitaldickinson.github.io/VJUtilities/ScriptBuilder.html
+- Visualscript: https://digitaldickinson.github.io/VJUtilities/visualscript.html
+- Grabby: https://digitaldickinson.github.io/VJUtilities/grabby.html
+- Waffle: https://digitaldickinson.github.io/VJUtilities/waffle.html
+- Risk Assessment: https://digitaldickinson.github.io/VJUtilities/Risk_Assessment.html
 
-- Works as a standalone HMTL file (but requires connection to access scripts)
-- As well as the standard blocks, there is now an interview block, which includes the ability to add multiple cutaways. 
-- Most shot blocks have the opportunity to specify overlay graphics if required. 
-- Shot blocks can be set to FULL NAT which denotes only NAT sound. No script.
-- There are now tags you can add into the script directly to fine-tune content:
-  - Temporary lifts in NAT sound (NAT POP) can be shown in script by adding the tag [NATPOP=X:TEXT] where x is the number of seconds of NAT sound you want, and TEXT is a brief line to point to a specific sound
-  - Temporary lifts in NAT sound focus on dialogue can be noted with [SOT=X:TEXT] where x is the number of seconds of sound and TEXT is the specific dialogue to include
-  - Overlay GFX can be defined globally by using the Overlay Graphics check box. But you can be more specific with timing in a script by using the [GFX:TEXT] tag where the text is the text content to show on screen.
- 
-See a working version at https://journalism.cards/visualscript/ 
+## Table of Contents
 
-## grabby.html ## 
-<img width="577" height="629" alt="image" src="https://github.com/user-attachments/assets/89b3e611-26e4-448a-8fc2-f063b5672525" />
+- [Tools](#tools)
+  - [ScriptBuilder](#scriptbuilderhtml)
+  - [Visualscript](#visualscripthtml)
+  - [Grabby](#grabbyhtml)
+  - [Waffle](#wafflehtml)
+  - [Risk Assessment](#risk-assessmenthtml)
+- [Usage](#usage)
+- [Development](#development)
+- [Feedback](#feedback)
 
-**Updated** Now includes an auto-detect feature.  Grabby will scuttle through a video clip and grab shots based on scene changes. 
+## Tools
 
-A very lightweight shot logger/screengrab utility. Designed to help students get screenshots for their reports and reflections.
+### ScriptBuilder (`ScriptBuilder.html`)
 
-- Works as a standalone HMTL file (but requires connection to access scripts)
-- Download individual images or a zip file of multiple images.
-- Download a Word doc with images added to form the skeleton of a report
+A standalone script-building page for first-year journalism students.
 
-## waffle.html ## 
-<img width="1093" height="692" alt="image" src="https://github.com/user-attachments/assets/fa068a59-81a1-4686-a668-be43fcfc8998" />
+![ScriptBuilder screenshot](screenshots/ScriptBuilder.png)
 
-A lightweight app to allow students to pratice writing and delivering script to pictures and to time. 
+- Build a formatted script from drag-and-drop shot blocks.
+- Designed for a simple package template with shot descriptions, nat sound, and lower-third details.
+- Includes basic interview cutaway support.
+- Live script preview updates as students add or edit blocks.
+- Copy the script to the clipboard.
+- Export a Word document formatted for assessment submission.
 
-- Works as a standalone HMTL file (but requires connection to access scripts)
-- The user can download an audio file of their script.
-- Note: Use the built-in microphone (requires permission for the browser to use the mic)
+### Visualscript (`Visualscript.html`)
+
+A more advanced visual script builder with unlimited shots and enhanced scripting tags.
+
+![Visualscript screenshot](screenshots/Visualscript.png)
+
+- Standalone HTML page with no local library dependencies.
+- Includes standard shot blocks plus an interview block with multiple cutaways.
+- Supports overlay graphics and FULL NAT blocks for natural sound only.
+- Script tags add advanced behaviour:
+  - `[NATPOP=X:TEXT]` for temporary NAT sound lifts, where `X` is duration in seconds.
+  - `[SOT=X:TEXT]` for dialogue-focused soundbites.
+  - `[GFX:TEXT]` for timed overlay graphic text.
+
+Live demo: https://journalism.cards/visualscript/
+
+### Grabby (`grabby.html`)
+
+![Grabby screenshot](screenshots/Grabby.png)
+
+A lightweight shot logger and screengrab utility.
+
+- Auto-detect scene changes in a video clip.
+- Capture individual frames or download multiple shots as a ZIP.
+- Export a Word document containing captured images for reports or reflections.
+
+### Waffle (`waffle.html`)
+
+![Waffle screenshot](screenshots/Waffle.png)
+
+A practice tool for writing, speaking, and timing scripts.
+
+- Run entirely in the browser.
+- Generate an audio file from script text.
+- Requires microphone permission for live recording.
+
+### Risk Assessment (`Risk_Assessment.html`)
+
+![Risk Assessment screenshot](screenshots/RiskAssessment.png)
+
+A location health and safety assessment builder for practical media shoots.
+
+- Complete safety checks, location details, and risk assessments in one page.
+- Export a Word document for reporting and evidence.
+- Built as a standalone HTML page with no local dependencies.
+
+## Usage
+
+1. Open the desired HTML file in a modern browser.
+2. Allow internet access for CDN-hosted scripts and libraries.
+3. Use the tool directly; no installation is required.
+
+### Running locally
+
+- Open any HTML file directly in the browser for a quick preview.
+- If you need local file access or want to avoid browser restrictions, serve the folder with a simple local server:
+  - Python 3: `python3 -m http.server 8000`
+  - Then open `http://localhost:8000/` in your browser.
+- This is useful for testing file downloads, webcam access, and browser security behaviour.
+
+## Development
+
+If you want to develop or extend these tools:
+
+- Edit the HTML files directly.
+- Ensure any external dependencies are still accessible when used in a VLE.
+- Keep the user interface simple for student use.
+
+## Feedback
+
+Please share any feedback or ideas by email:
+
+- a.dickinson@mmu.ac.uk
+
+Contributions and suggestions are welcome.
 
 
