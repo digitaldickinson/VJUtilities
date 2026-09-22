@@ -16,6 +16,7 @@ Live pages are available via GitHub Pages:
 
 - ScriptBuilder: https://digitaldickinson.github.io/VJUtilities/ScriptBuilder.html
 - Visualscript: https://digitaldickinson.github.io/VJUtilities/visualscript.html
+- OOV/SOT Script Builder: https://digitaldickinson.github.io/VJUtilities/oov-sots-builder.html
 - Grabby: https://digitaldickinson.github.io/VJUtilities/grabby.html
 - Waffle: https://digitaldickinson.github.io/VJUtilities/waffle.html
 - Risk Assessment: https://digitaldickinson.github.io/VJUtilities/Risk_Assessment.html
@@ -25,6 +26,7 @@ Live pages are available via GitHub Pages:
 - [Tools](#tools)
   - [ScriptBuilder](#scriptbuilderhtml)
   - [Visualscript](#visualscripthtml)
+  - [OOV/SOT Script Builder](#oovsot-script-builder-oov-sots-builderhtml)
   - [Grabby](#grabbyhtml)
   - [Waffle](#wafflehtml)
   - [Risk Assessment](#risk-assessmenthtml)
@@ -62,6 +64,20 @@ A more advanced visual script builder with unlimited shots and enhanced scriptin
   - `[GFX:TEXT]` for timed overlay graphic text.
 
 Live demo: https://journalism.cards/visualscript/
+
+### OOV/SOT Script Builder (`oov-sots-builder.html`)
+
+A builder for the OOV/SOTS format: presenter reads to camera, hands off to a reporter
+voiceover with shots logged against it, cuts to one clean soundbite, and stops.
+
+![OOV/SOT Script Builder screenshot](screenshots/OovSotsBuilder.png)
+
+- Fixed ON CAM &rarr; OOV &rarr; SOT &rarr; Out structure, with drag-and-drop or click-to-add shot logging under the OOV.
+- Mid-interview cutaway support, marked by selecting a span of the SOT transcript.
+- Live 50s &plusmn;3 running-time readout, built from actual shot durations and SOT length rather than a word-count guess alone.
+- Validation covers contributor details, shot descriptions/durations, in/out words, and cutaway details before export is enabled.
+- Autosaves a draft to the browser so an accidental refresh doesn't lose the work.
+- Exports a real `.docx` file formatted as a newsroom-style cue sheet.
 
 ### Grabby (`grabby.html`)
 
